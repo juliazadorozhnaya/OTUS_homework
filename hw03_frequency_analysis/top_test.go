@@ -1,12 +1,12 @@
 package hw03frequencyanalysis
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-// Change to true if needed.
 var taskWithAsteriskIsCompleted = false
 
 var text = `Как видите, он  спускается  по  лестнице  вслед  за  своим
@@ -78,5 +78,29 @@ func TestTop10(t *testing.T) {
 			}
 			require.Equal(t, expected, Top10(text))
 		}
+	})
+
+	t.Run("test with punctuation", func(t *testing.T) {
+		text := "Привет, мир! Это тест: тест, тест."
+		expected := []string{"Привет,", "Это", "мир!", "тест,", "тест.", "тест:"}
+		require.Equal(t, expected, Top10(text))
+	})
+
+	t.Run("test with unique words", func(t *testing.T) {
+		text := "каждое слово уникально"
+		expected := strings.Fields(text)
+		require.Equal(t, expected, Top10(text))
+	})
+
+	t.Run("test with single word", func(t *testing.T) {
+		text := "слово"
+		expected := []string{"слово"}
+		require.Equal(t, expected, Top10(text))
+	})
+
+	t.Run("test with mixed case", func(t *testing.T) {
+		text := "Слово слово СЛОВО"
+		expected := []string{"СЛОВО", "Слово", "слово"}
+		require.Equal(t, expected, Top10(text))
 	})
 }
