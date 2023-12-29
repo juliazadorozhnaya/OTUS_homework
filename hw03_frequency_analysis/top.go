@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+type WordCounter struct {
+	word  string
+	count int
+}
+
 func Top10(text string) []string {
 	words := strings.Fields(text)
 	wordCount := make(map[string]int)
@@ -13,7 +18,6 @@ func Top10(text string) []string {
 	for _, word := range words {
 		wordCount[word]++
 	}
-
 	// преобразуем в слайс для сортировки
 	wordFreq := make([]struct {
 		word  string
@@ -22,12 +26,8 @@ func Top10(text string) []string {
 
 	// перезапишем в слайс
 	for word, count := range wordCount {
-		wordFreq = append(wordFreq, struct {
-			word  string
-			count int
-		}{word, count})
+		wordFreq = append(wordFreq, WordCounter{word, count})
 	}
-
 	// сортируем слайс, чтобы потом с него вытащить ТОП по count'ам
 	sort.Slice(wordFreq, func(i, j int) bool {
 		if wordFreq[i].count == wordFreq[j].count {
