@@ -23,7 +23,6 @@ func Unpack(s string) (string, error) {
 			if i >= len(runeSlice) {
 				return "", ErrInvalidString
 			}
-
 			next := runeSlice[i]
 			if unicode.IsDigit(next) || next == '\\' {
 				builder.WriteRune(next)
