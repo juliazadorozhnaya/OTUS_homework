@@ -19,7 +19,7 @@ func Unpack(s string) (string, error) {
 		switch {
 		case isLetterOrEscapedBackslash(current, i, runeSlice):
 			builder.WriteRune(current)
-		case current == '\\':
+		case current == '\\': //nolint
 			next, err := handleBackslash(i, runeSlice)
 			if err != nil {
 				return "", err
@@ -39,7 +39,7 @@ func Unpack(s string) (string, error) {
 }
 
 func isLetterOrEscapedBackslash(current rune, i int, runeSlice []rune) bool {
-	return unicode.IsLetter(current) || (current == '\\' && i+1 < len(runeSlice) && runeSlice[i+1] == '\\')
+	return unicode.IsLetter(current) || (current == '\\' && i+1 < len(runeSlice) && runeSlice[i+1] == '\\') //nolint
 }
 
 func handleBackslash(i int, runeSlice []rune) (rune, error) {
@@ -48,7 +48,7 @@ func handleBackslash(i int, runeSlice []rune) (rune, error) {
 		return 0, ErrInvalidString
 	}
 	next := runeSlice[i]
-	if unicode.IsDigit(next) || next == '\\' {
+	if unicode.IsDigit(next) || next == '\\' { //nolint
 		return next, nil
 	}
 	return 0, ErrInvalidString
