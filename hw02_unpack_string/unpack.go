@@ -10,21 +10,44 @@ import (
 var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(s string) (string, error) {
-	sr := []rune(s)
-	var newStr strings.Builder
+	if len(s) == 0 {
+		return "", nil
+	}
 
-	for i, item := range sr {
+	var result strings.Builder
+	var prevRune rune
+	var isPrevRuneDigit bool
 
-		if unicode.IsDigit(item) && i == 0 {
+	for i, r := range s {
+		isDigit := unicode.IsDigit(r)
+
+		if i == 0 && isDigit {
 			return "", ErrInvalidString
 		}
 
-		if i+1 < len(sr) && unicode.IsDigit(sr[i+1]) {
-			count, _ := strconv.Atoi(string(sr[i+1]))
-			newStr.WriteString(strings.Repeat(string(item), count))
-			i++
+		if isDigit && isPrevRuneDigit {
+			return "", ErrInvalidString
 		}
+
+		if isDigit {
+			count, _ := strconv.Atoi(string(r))
+			if count > 0 && prevRune != 0 {
+				result.WriteString(strings.Repeat(string(prevRune), count))
+			}
+		} else {
+			if !isPrevRuneDigit && prevRune != 0 {
+				result.WriteRune(prevRune)
+			}
+			prevRune = r
+		}
+
+		isPrevRuneDigit = isDigit
 	}
 
-	return newStr.String(), nil
+	if !isPrevRuneDigit && prevRune != 0 {
+		result.WriteRune(prevRune)
+	}
+
+	return result.String(), nil
+
 }
