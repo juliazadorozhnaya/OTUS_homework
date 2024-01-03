@@ -9,8 +9,6 @@ type Cache interface {
 }
 
 type lruCache struct {
-	Cache // Remove me after realization.
-
 	capacity int
 	queue    List
 	items    map[Key]*ListItem
@@ -22,4 +20,40 @@ func NewCache(capacity int) Cache {
 		queue:    NewList(),
 		items:    make(map[Key]*ListItem, capacity),
 	}
+}
+
+func (l *lruCache) Set(key Key, value interface{}) bool {
+	// Проверяем, есть ли элемент в кэше
+	if item, ok := l.items[key]; ok {
+		// Обновляем значение и перемещаем элемент в начало очереди
+		item.Value = value
+		l.queue.MoveToFront(item)
+		return true
+	}
+
+	// Создаём новый элемент списка
+	newItem := l.queue.PushFront(value)
+	l.items[key] = newItem
+
+	// Если кэш переполнен, удаляем последний элемент
+	if l.queue.Len() > l.capacity {
+		lastItem := l.queue.Back()
+		l.queue.Remove(lastItem)
+		delete(l.items, key)
+	}
+
+	return false
+}
+
+func (l *lruCache) Get(key Key) (interface{}, bool) {
+	if item, ok := l.items[key]; ok {
+		l.queue.MoveToFront(item)
+		return item.Value, true
+	}
+	return nil, false
+}
+
+func (l *lruCache) Clear() {
+	l.queue = NewList()
+	l.items = make(map[Key]*ListItem)
 }

@@ -1,6 +1,7 @@
 package hw04lrucache
 
 import (
+	"fmt"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -49,8 +50,66 @@ func TestCache(t *testing.T) {
 		require.Nil(t, val)
 	})
 
-	t.Run("purge logic", func(t *testing.T) {
-		// Write me
+	t.Run("eviction due to size", func(t *testing.T) {
+		cacheSize := 3
+		c := NewCache(cacheSize)
+
+		// Add elements to fill the cache
+		for i := 0; i < cacheSize; i++ {
+			c.Set(Key(fmt.Sprintf("key%d", i)), i)
+		}
+
+		// Add one more element, which should cause the first one to be evicted
+		c.Set("newKey", 100)
+
+		_, ok := c.Get("key0")
+		require.False(t, ok) // "key0" should have been evicted
+
+		val, ok := c.Get("newKey")
+		require.True(t, ok)
+		require.Equal(t, 100, val)
+	})
+
+	t.Run("eviction of least recently used", func(t *testing.T) {
+		cacheSize := 3
+		c := NewCache(cacheSize)
+
+		// Add elements to fill the cache
+		for i := 0; i < cacheSize; i++ {
+			c.Set(Key(fmt.Sprintf("key%d", i)), i)
+		}
+
+		// Access some keys to change their 'recently used' status
+		c.Get("key1")      // Access 'key1'
+		c.Set("key2", 200) // Update 'key2'
+
+		// Add one more element, which should cause 'key0' to be evicted as it's the least recently used
+		c.Set("newKey", 300)
+
+		_, ok := c.Get("key0")
+		require.False(t, ok) // "key0" should have been evicted
+
+		val, ok := c.Get("key2")
+		require.True(t, ok)
+		require.Equal(t, 200, val)
+
+		val, ok = c.Get("newKey")
+		require.True(t, ok)
+		require.Equal(t, 300, val)
+	})
+
+	t.Run("clear cache", func(t *testing.T) {
+		c := NewCache(2)
+		c.Set("key1", 1)
+		c.Set("key2", 2)
+
+		c.Clear()
+
+		_, ok := c.Get("key1")
+		require.False(t, ok)
+
+		_, ok = c.Get("key2")
+		require.False(t, ok)
 	})
 }
 
