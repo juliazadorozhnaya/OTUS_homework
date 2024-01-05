@@ -23,23 +23,28 @@ func NewCache(capacity int) Cache {
 }
 
 func (l *lruCache) Set(key Key, value interface{}) bool {
-	// Проверяем, есть ли элемент в кэше
 	if item, ok := l.items[key]; ok {
-		// Обновляем значение и перемещаем элемент в начало очереди
+		// Обновляем значение и перемещаем элемент в начало списка
 		item.Value = value
 		l.queue.MoveToFront(item)
 		return true
 	}
 
-	// Создаём новый элемент списка
 	newItem := l.queue.PushFront(value)
 	l.items[key] = newItem
 
-	// Если кэш переполнен, удаляем последний элемент
 	if l.queue.Len() > l.capacity {
+		// Удаляем последний элемент из списка и словаря
 		lastItem := l.queue.Back()
-		l.queue.Remove(lastItem)
-		delete(l.items, key)
+		if lastItem != nil {
+			l.queue.Remove(lastItem)
+			for k, v := range l.items {
+				if v == lastItem {
+					delete(l.items, k)
+					break
+				}
+			}
+		}
 	}
 
 	return false
