@@ -25,14 +25,12 @@ func TestCache(t *testing.T) {
 
 		wasInCache := c.Set("aaa", 100)
 		require.False(t, wasInCache) // Вставка первого элемента
-
 		val, ok := c.Get("aaa")
 		require.True(t, ok)
 		require.Equal(t, 100, val)
 
 		wasInCache = c.Set("bbb", 200)
 		require.False(t, wasInCache) // Вставка второго элемента
-
 		val, ok = c.Get("bbb")
 		require.True(t, ok)
 		require.Equal(t, 200, val)
@@ -42,14 +40,12 @@ func TestCache(t *testing.T) {
 
 		wasInCache = c.Set("ddd", 400) // Вставка третьего элемента
 		require.False(t, wasInCache)
-
 		val, ok = c.Get("ddd")
 		require.True(t, ok)
 		require.Equal(t, 400, val)
 
 		wasInCache = c.Set("eee", 500) // Вставка четвертого элемента выше капасити
 		require.False(t, wasInCache)
-
 		val, ok = c.Get("eee")
 		require.True(t, ok)
 		require.Equal(t, 500, val)
