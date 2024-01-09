@@ -1,5 +1,7 @@
 package hw04lrucache
 
+import "sync"
+
 type Key string
 
 type Cache interface {
@@ -12,6 +14,12 @@ type lruCache struct {
 	capacity int
 	queue    List
 	items    map[Key]*ListItem
+	mu       sync.Mutex
+}
+
+type cacheItem struct {
+	Key   Key
+	Value interface{}
 }
 
 func NewCache(capacity int) Cache {
@@ -23,42 +31,47 @@ func NewCache(capacity int) Cache {
 }
 
 func (l *lruCache) Set(key Key, value interface{}) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	if item, ok := l.items[key]; ok {
 		// Обновляем значение и перемещаем элемент в начало списка
-		item.Value = value
+		item.Value = cacheItem{key, value}
 		l.queue.MoveToFront(item)
 		return true
 	}
 
-	newItem := l.queue.PushFront(value)
+	newItem := l.queue.PushFront(cacheItem{key, value})
 	l.items[key] = newItem
 
 	if l.queue.Len() > l.capacity {
 		// Удаляем последний элемент из списка и словаря
 		lastItem := l.queue.Back()
 		if lastItem != nil {
-			l.queue.Remove(lastItem)
-			for k, v := range l.items {
-				if v == lastItem {
-					delete(l.items, k)
-					break
-				}
-			}
+			last := l.queue.Back()
+			item := last.Value.(cacheItem)
+			l.queue.Remove(last)
+			delete(l.items, item.Key)
 		}
 	}
-
 	return false
 }
 
 func (l *lruCache) Get(key Key) (interface{}, bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if item, ok := l.items[key]; ok {
 		l.queue.MoveToFront(item)
-		return item.Value, true
+		return item.Value.(cacheItem).Value, true
 	}
 	return nil, false
 }
 
 func (l *lruCache) Clear() {
-	l.queue = NewList()
-	l.items = make(map[Key]*ListItem)
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	for item := range l.items {
+		l.queue.Remove(l.items[item])
+		delete(l.items, item)
+	}
 }

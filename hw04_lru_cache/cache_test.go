@@ -21,31 +21,45 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("simple", func(t *testing.T) {
-		c := NewCache(5)
+		c := NewCache(3)
 
 		wasInCache := c.Set("aaa", 100)
-		require.False(t, wasInCache)
-
-		wasInCache = c.Set("bbb", 200)
-		require.False(t, wasInCache)
+		require.False(t, wasInCache) // вставка 1ого элемента
 
 		val, ok := c.Get("aaa")
 		require.True(t, ok)
 		require.Equal(t, 100, val)
+
+		wasInCache = c.Set("bbb", 200)
+		require.False(t, wasInCache) // вставка 2ого элемента
 
 		val, ok = c.Get("bbb")
 		require.True(t, ok)
 		require.Equal(t, 200, val)
 
 		wasInCache = c.Set("aaa", 300)
-		require.True(t, wasInCache)
+		require.True(t, wasInCache) // вставка по тому же ключу - замена значения, теперь это первый элемент
+		//выше предыдущего
 
-		val, ok = c.Get("aaa")
+		wasInCache = c.Set("ddd", 400) // вставка третьего элемента
+		require.False(t, wasInCache)
+
+		val, ok = c.Get("ddd")
 		require.True(t, ok)
-		require.Equal(t, 300, val)
+		require.Equal(t, 400, val)
+
+		wasInCache = c.Set("eee", 500) // вставка четвертого элемента выше капасити
+		require.False(t, wasInCache)
+
+		val, ok = c.Get("eee")
+		require.True(t, ok)
+		require.Equal(t, 500, val)
+
+		val, ok = c.Get("bbb")
+		require.False(t, ok) // должен отсутствовать
 
 		val, ok = c.Get("ccc")
-		require.False(t, ok)
+		require.False(t, ok) // ищем то, чего нет
 		require.Nil(t, val)
 	})
 
@@ -104,7 +118,6 @@ func TestCache(t *testing.T) {
 }
 
 func TestCacheMultithreading(t *testing.T) {
-	t.Skip() // Remove me if task with asterisk completed.
 
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
