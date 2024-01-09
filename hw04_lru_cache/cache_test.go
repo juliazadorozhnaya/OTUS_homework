@@ -24,31 +24,30 @@ func TestCache(t *testing.T) {
 		c := NewCache(3)
 
 		wasInCache := c.Set("aaa", 100)
-		require.False(t, wasInCache) // вставка 1ого элемента
+		require.False(t, wasInCache) // Вставка первого элемента
 
 		val, ok := c.Get("aaa")
 		require.True(t, ok)
 		require.Equal(t, 100, val)
 
 		wasInCache = c.Set("bbb", 200)
-		require.False(t, wasInCache) // вставка 2ого элемента
+		require.False(t, wasInCache) // Вставка второго элемента
 
 		val, ok = c.Get("bbb")
 		require.True(t, ok)
 		require.Equal(t, 200, val)
 
 		wasInCache = c.Set("aaa", 300)
-		require.True(t, wasInCache) // вставка по тому же ключу - замена значения, теперь это первый элемент
-		//выше предыдущего
+		require.True(t, wasInCache) // Вставка по тому же ключу - замена значения
 
-		wasInCache = c.Set("ddd", 400) // вставка третьего элемента
+		wasInCache = c.Set("ddd", 400) // Вставка третьего элемента
 		require.False(t, wasInCache)
 
 		val, ok = c.Get("ddd")
 		require.True(t, ok)
 		require.Equal(t, 400, val)
 
-		wasInCache = c.Set("eee", 500) // вставка четвертого элемента выше капасити
+		wasInCache = c.Set("eee", 500) // Вставка четвертого элемента выше капасити
 		require.False(t, wasInCache)
 
 		val, ok = c.Get("eee")
@@ -56,10 +55,10 @@ func TestCache(t *testing.T) {
 		require.Equal(t, 500, val)
 
 		val, ok = c.Get("bbb")
-		require.False(t, ok) // должен отсутствовать
+		require.False(t, ok) // Должен отсутствовать
 
 		val, ok = c.Get("ccc")
-		require.False(t, ok) // ищем то, чего нет
+		require.False(t, ok) // Ищем то, чего нет
 		require.Nil(t, val)
 	})
 
