@@ -50,7 +50,7 @@ func TestCache(t *testing.T) {
 		require.True(t, ok)
 		require.Equal(t, 500, val)
 
-		val, ok = c.Get("bbb")
+		_, ok = c.Get("bbb")
 		require.False(t, ok) // Должен отсутствовать
 
 		val, ok = c.Get("ccc")
@@ -112,8 +112,7 @@ func TestCache(t *testing.T) {
 	})
 }
 
-func TestCacheMultithreading(t *testing.T) {
-
+func TestCacheMultithreading(_ *testing.T) {
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
