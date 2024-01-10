@@ -21,42 +21,98 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("simple", func(t *testing.T) {
-		c := NewCache(5)
+		c := NewCache(3)
 
 		wasInCache := c.Set("aaa", 100)
-		require.False(t, wasInCache)
-
-		wasInCache = c.Set("bbb", 200)
-		require.False(t, wasInCache)
-
+		require.False(t, wasInCache) // Вставка первого элемента
 		val, ok := c.Get("aaa")
 		require.True(t, ok)
 		require.Equal(t, 100, val)
 
+		wasInCache = c.Set("bbb", 200)
+		require.False(t, wasInCache) // Вставка второго элемента
 		val, ok = c.Get("bbb")
 		require.True(t, ok)
 		require.Equal(t, 200, val)
 
 		wasInCache = c.Set("aaa", 300)
-		require.True(t, wasInCache)
+		require.True(t, wasInCache) // Вставка по тому же ключу - замена значения
 
-		val, ok = c.Get("aaa")
+		wasInCache = c.Set("ddd", 400) // Вставка третьего элемента
+		require.False(t, wasInCache)
+		val, ok = c.Get("ddd")
 		require.True(t, ok)
-		require.Equal(t, 300, val)
+		require.Equal(t, 400, val)
+
+		wasInCache = c.Set("eee", 500) // Вставка четвертого элемента выше капасити
+		require.False(t, wasInCache)
+		val, ok = c.Get("eee")
+		require.True(t, ok)
+		require.Equal(t, 500, val)
+
+		_, ok = c.Get("bbb")
+		require.False(t, ok) // Должен отсутствовать и вытолкнуться
 
 		val, ok = c.Get("ccc")
-		require.False(t, ok)
+		require.False(t, ok) // Ищем то, чего нет
 		require.Nil(t, val)
 	})
 
-	t.Run("purge logic", func(t *testing.T) {
-		// Write me
+	t.Run("clear cache", func(t *testing.T) {
+		c := NewCache(2)
+		c.Set("key1", 1)
+		c.Set("key2", 2)
+
+		c.Clear()
+
+		_, ok := c.Get("key1")
+		require.False(t, ok)
+
+		_, ok = c.Get("key2")
+		require.False(t, ok)
+	})
+
+	t.Run("eviction due to size", func(t *testing.T) {
+		c := NewCache(2)
+		c.Set("key1", 1)
+		c.Set("key2", 2)
+		c.Set("key3", 3) // Должно вытолкнуть "key1"
+
+		val, ok := c.Get("key1")
+		require.False(t, ok)
+		require.Nil(t, val)
+
+		val, ok = c.Get("key2")
+		require.True(t, ok)
+		require.Equal(t, 2, val)
+
+		val, ok = c.Get("key3")
+		require.True(t, ok)
+		require.Equal(t, 3, val)
+	})
+
+	t.Run("least recently used eviction", func(t *testing.T) {
+		c := NewCache(2)
+		c.Set("key1", 1)
+		c.Set("key2", 2)
+		c.Get("key1")    // Используем "key1", чтобы он остался в кэше
+		c.Set("key3", 3) // Должно вытолкнуть "key2"
+
+		val, ok := c.Get("key2")
+		require.False(t, ok)
+		require.Nil(t, val)
+
+		val, ok = c.Get("key1")
+		require.True(t, ok)
+		require.Equal(t, 1, val)
+
+		val, ok = c.Get("key3")
+		require.True(t, ok)
+		require.Equal(t, 3, val)
 	})
 }
 
-func TestCacheMultithreading(t *testing.T) {
-	t.Skip() // Remove me if task with asterisk completed.
-
+func TestCacheMultithreading(_ *testing.T) {
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
