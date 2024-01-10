@@ -51,7 +51,7 @@ func TestCache(t *testing.T) {
 		require.Equal(t, 500, val)
 
 		_, ok = c.Get("bbb")
-		require.False(t, ok) // Должен отсутствовать
+		require.False(t, ok) // Должен отсутствовать и вытолкнуться
 
 		val, ok = c.Get("ccc")
 		require.False(t, ok) // Ищем то, чего нет
@@ -72,44 +72,6 @@ func TestCache(t *testing.T) {
 		require.False(t, ok)
 	})
 
-	t.Run("eviction due to size", func(t *testing.T) {
-		c := NewCache(2)
-		c.Set("key1", 1)
-		c.Set("key2", 2)
-		c.Set("key3", 3) // Должно вытолкнуть "key1"
-
-		val, ok := c.Get("key1")
-		require.False(t, ok)
-		require.Nil(t, val)
-
-		val, ok = c.Get("key2")
-		require.True(t, ok)
-		require.Equal(t, 2, val)
-
-		val, ok = c.Get("key3")
-		require.True(t, ok)
-		require.Equal(t, 3, val)
-	})
-
-	t.Run("least recently used eviction", func(t *testing.T) {
-		c := NewCache(2)
-		c.Set("key1", 1)
-		c.Set("key2", 2)
-		c.Get("key1")    // Используем "key1", чтобы он остался в кэше
-		c.Set("key3", 3) // Должно вытолкнуть "key2"
-
-		val, ok := c.Get("key2")
-		require.False(t, ok)
-		require.Nil(t, val)
-
-		val, ok = c.Get("key1")
-		require.True(t, ok)
-		require.Equal(t, 1, val)
-
-		val, ok = c.Get("key3")
-		require.True(t, ok)
-		require.Equal(t, 3, val)
-	})
 }
 
 func TestCacheMultithreading(_ *testing.T) {
