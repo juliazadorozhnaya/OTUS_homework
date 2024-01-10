@@ -1,4 +1,4 @@
-package hw04lrucache // nolint:golint
+package hw04lrucache //nolint:golint
 
 import (
 	"math/rand"
