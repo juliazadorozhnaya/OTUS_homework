@@ -43,7 +43,7 @@ func (l *lruCache) Set(key Key, value interface{}) bool {
 
 	newItem := l.queue.PushFront(cacheItem{key, value})
 	l.items[key] = newItem
-	if l.queue.Len() > l.capacity {
+	if l.queue.Len() == l.capacity {
 		// Удаляем последний элемент из списка и словаря
 		lastItem := l.queue.Back()
 		if lastItem != nil {
