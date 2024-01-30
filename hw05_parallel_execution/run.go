@@ -9,57 +9,65 @@ var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 
 type Task func() error
 
-// Run starts tasks in n goroutines and stops its work when receiving m errors from tasks.
 func Run(tasks []Task, n, m int) error {
-	// Проверяем, что количество горутин больше нуля
 	if n <= 0 {
 		return ErrErrorsLimitExceeded
 	}
 
-	tasksChan := make(chan Task)
-	errorsChan := make(chan error)
-	wg := sync.WaitGroup{}
+	tasksCh := make(chan Task, len(tasks))
+	errCh := make(chan error, n)
+	done := make(chan struct{})
+	var wg sync.WaitGroup
+	defer close(done)
 
-	// Запускаем n рабочих горутин
+	// Запуск воркеров с учетом канала done
 	for i := 0; i < n; i++ {
 		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for task := range tasksChan { // Обрабатываем задачи из канала
-				if err := task(); err != nil {
-					errorsChan <- err // Отправляем ошибку в канал, если задача завершилась с ошибкой
-				}
-			}
-		}()
+		go worker(tasksCh, errCh, done, &wg)
 	}
 
-	// Отдельная горутина для мониторинга ошибок
+	// Отправка задач в канал задач
+	for _, task := range tasks {
+		tasksCh <- task
+	}
+	close(tasksCh)
+
+	// Ожидание завершения воркеров, чтобы не блокировать основную горутину
 	go func() {
-		errorCount := 0
-		for err := range errorsChan {
-			if err != nil {
-				errorCount++
-				if m > 0 && errorCount >= m {
-					close(tasksChan) // Закрываем канал задач, если превышен лимит ошибок
-					return
-				}
-			}
-		}
+		wg.Wait()
+		close(errCh)
 	}()
 
-	// Распределяем задачи по каналу
-	for _, task := range tasks {
-		tasksChan <- task
-	}
-	close(tasksChan)
-
-	wg.Wait()
-	close(errorsChan) // Закрываем канал ошибок после того, как все горутины завершились
-
-	// Проверяем, был ли превышен лимит ошибок.
-	if m > 0 && len(errorsChan) >= m {
-		return ErrErrorsLimitExceeded
+	// Обработка ошибок
+	var errCount int
+	for err := range errCh {
+		if err != nil {
+			errCount++
+			if m > 0 && errCount >= m {
+				return ErrErrorsLimitExceeded
+			}
+		}
 	}
 
 	return nil
+}
+
+func worker(tasksCh <-chan Task, errCh chan<- error, done <-chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for {
+		select {
+		case task, ok := <-tasksCh:
+			if !ok {
+				return
+			}
+			err := task()
+			select {
+			case errCh <- err:
+			case <-done:
+				return
+			}
+		case <-done:
+			return
+		}
+	}
 }
