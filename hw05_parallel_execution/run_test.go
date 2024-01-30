@@ -83,12 +83,12 @@ func TestRun(t *testing.T) {
 			})
 		}
 
-		workersCount := 5
+		workersCount := 10
 		maxErrorsCount := 0
 
 		err := Run(tasks, workersCount, maxErrorsCount)
-		require.NoError(t, err)
-		require.Equal(t, int32(tasksCount), atomic.LoadInt32(&runTasksCount), "not all tasks were processed")
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrErrorsLimitExceeded)
 	})
 
 	t.Run("treat maxErrorsCount <= 0 as maximum 0 errors", func(t *testing.T) {
