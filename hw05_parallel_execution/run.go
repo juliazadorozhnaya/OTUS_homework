@@ -14,60 +14,38 @@ func Run(tasks []Task, n, m int) error {
 		return ErrErrorsLimitExceeded
 	}
 
-	tasksCh := make(chan Task, len(tasks))
-	errCh := make(chan error, n)
-	done := make(chan struct{})
+	var mt sync.Mutex
+	var errCount int
 	var wg sync.WaitGroup
-	defer close(done)
+	tasksCh := make(chan Task)
 
-	// Запуск воркеров с учетом канала done
-	for i := 0; i < n; i++ {
-		wg.Add(1)
-		go worker(tasksCh, errCh, done, &wg)
-	}
-
-	// Отправка задач в канал задач
 	for _, task := range tasks {
 		tasksCh <- task
 	}
 	close(tasksCh)
 
-	// Ожидание завершения воркеров, чтобы не блокировать основную горутину
-	go func() {
-		wg.Wait()
-		close(errCh)
-	}()
-
-	// Обработка ошибок
-	var errCount int
-	for err := range errCh {
-		if err != nil {
-			errCount++
-			if m > 0 && errCount >= m {
-				return ErrErrorsLimitExceeded
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			for task := range tasksCh {
+				err := task()
+				mt.Lock()
+				if err != nil {
+					errCount++
+				}
+				if errCount == m {
+					mt.Unlock()
+					return
+				}
+				mt.Unlock()
 			}
-		}
+		}()
+	}
+	wg.Wait()
+	if errCount >= m {
+		return ErrErrorsLimitExceeded
 	}
 
 	return nil
-}
-
-func worker(tasksCh <-chan Task, errCh chan<- error, done <-chan struct{}, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for {
-		select {
-		case task, ok := <-tasksCh:
-			if !ok {
-				return
-			}
-			err := task()
-			select {
-			case errCh <- err:
-			case <-done:
-				return
-			}
-		case <-done:
-			return
-		}
-	}
 }
