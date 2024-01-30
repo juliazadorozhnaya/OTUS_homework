@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	//nolint:depguard
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 )
