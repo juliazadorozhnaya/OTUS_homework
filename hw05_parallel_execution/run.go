@@ -3,6 +3,7 @@ package hw05parallelexecution
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 )
 
 var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
@@ -10,42 +11,40 @@ var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 type Task func() error
 
 func Run(tasks []Task, n, m int) error {
-	if n <= 0 {
+	if m <= 0 {
 		return ErrErrorsLimitExceeded
 	}
 
-	var mt sync.Mutex
-	var errCount int
+	taskChan := make(chan Task)
 	var wg sync.WaitGroup
-	tasksCh := make(chan Task)
+	var errorCount int32
 
 	for _, task := range tasks {
-		tasksCh <- task
+		taskChan <- task
 	}
-	close(tasksCh)
+	close(taskChan)
 
-	wg.Add(n)
 	for i := 0; i < n; i++ {
-		go func() {
-			defer wg.Done()
-			for task := range tasksCh {
-				err := task()
-				mt.Lock()
-				if err != nil {
-					errCount++
-				}
-				if errCount == m {
-					mt.Unlock()
-					return
-				}
-				mt.Unlock()
-			}
-		}()
+		wg.Add(1)
+		go worker(taskChan, &wg, &errorCount)
 	}
+
 	wg.Wait()
-	if errCount >= m {
+
+	if errorCount >= int32(m) {
 		return ErrErrorsLimitExceeded
 	}
 
 	return nil
+}
+
+func worker(tasks <-chan Task, wg *sync.WaitGroup, counter *int32) {
+	defer wg.Done()
+
+	for task := range tasks {
+		err := task()
+		if err != nil {
+			atomic.AddInt32(counter, 1)
+		}
+	}
 }
