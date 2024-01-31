@@ -27,7 +27,11 @@ func wrapWithDone(in In, done In) In {
 				if !ok {
 					return
 				}
-				out <- v
+				select {
+				case <-done:
+					return
+				case out <- v:
+				}
 			}
 		}
 	}()
