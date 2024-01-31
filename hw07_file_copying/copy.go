@@ -14,7 +14,6 @@ var (
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
-
 	if offset < 0 {
 		offset = 0
 	}
