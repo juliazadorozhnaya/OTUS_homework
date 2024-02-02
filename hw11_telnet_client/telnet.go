@@ -18,7 +18,6 @@ func NewTelnetClient(address string, timeout time.Duration, in io.ReadCloser, ou
 	return &TClient{address: address, timeout: timeout, in: in, out: out}
 }
 
-// TClient реализация TelnetClient.
 type TClient struct {
 	address string
 	timeout time.Duration
