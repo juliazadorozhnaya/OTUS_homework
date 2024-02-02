@@ -2,6 +2,7 @@ package hw10programoptimization
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -27,7 +28,7 @@ func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 	for {
 		var user User
 		if err := decoder.Decode(&user); err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, fmt.Errorf("error decoding user: %w", err)
@@ -41,7 +42,7 @@ func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 	return result, nil
 }
 
-// getEmailDomain извлекает доменную часть из email и приводит её к нижнему регистру
+// getEmailDomain извлекает доменную часть из email и приводит её к нижнему регистру.
 func getEmailDomain(email string) string {
 	atIndex := strings.LastIndex(email, "@")
 	if atIndex == -1 {
