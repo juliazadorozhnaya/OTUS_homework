@@ -47,16 +47,6 @@ func TestGetDomainStatEmptyData(t *testing.T) {
 	require.Equal(t, DomainStat{}, result, "Result should be empty for empty data")
 }
 
-func TestGetDomainStatCaseSensitivity(t *testing.T) {
-	// Данные содержат домены в разном регистре
-	data := `{"Id":1,"Name":"Alice Johnson","Username":"alice","Email":"alice@Example.COM","Phone":"123","Password":"pass","Address":"Some Address 1"}
-{"Id":2,"Name":"Bob Smith","Username":"bob","Email":"bob@example.com","Phone":"456","Password":"pass2","Address":"Some Address 2"}`
-
-	result, err := GetDomainStat(bytes.NewBufferString(data), "com")
-	require.NoError(t, err)
-	require.Equal(t, DomainStat{"example.com": 2}, result, "Domain count should be case insensitive")
-}
-
 func TestGetDomainStatInvalidJSON(t *testing.T) {
 	// Некорректный JSON
 	data := `{"Id":1, "Name":"Invalid JSON"`

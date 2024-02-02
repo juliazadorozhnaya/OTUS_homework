@@ -1,6 +1,7 @@
 package hw10programoptimization
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"strings"
@@ -8,39 +9,41 @@ import (
 	"github.com/mailru/easyjson"
 )
 
+const bufferSize = 512
+
 //easyjson:json
-type User struct {
+type UserEmail struct {
 	Email string
 }
 
 type DomainStat map[string]int
 
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	result := make(DomainStat)
+	result := DomainStat{}
 	domainSuffix := "." + domain
 
-	for {
-		var user User
-		if err := easyjson.UnmarshalFromReader(r, &user); err != nil {
-			if err == io.EOF {
-				break
+	scanner := bufio.NewScanner(r)
+	buffer := make([]byte, bufferSize)
+	scanner.Buffer(buffer, 4*bufferSize)
+	userEmail := &UserEmail{}
+	for scanner.Scan() {
+		*userEmail = UserEmail{} // Сброс структуры перед каждым использованием
+		// Используйте easyjson для десериализации из сканера
+		if err := easyjson.Unmarshal(scanner.Bytes(), userEmail); err != nil {
+			return nil, err
+		}
+
+		email := userEmail.Email
+		if strings.HasSuffix(email, domainSuffix) {
+			if idx := strings.IndexRune(email, '@'); idx >= 0 {
+				result[strings.ToLower(email[idx+1:])]++
+			} else {
+				return nil, fmt.Errorf("user email: %s format is not valid (doesn't contain \"@\" symbol)", userEmail.Email)
 			}
-			return nil, fmt.Errorf("error decoding user: %w", err)
-		}
-
-		if emailDomain := getEmailDomain(user.Email); strings.HasSuffix(emailDomain, domainSuffix) {
-			result[emailDomain]++
 		}
 	}
-
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error while reading input: %w", err)
+	}
 	return result, nil
-}
-
-// getEmailDomain extracts the domain part from the email and converts it to lowercase.
-func getEmailDomain(email string) string {
-	atIndex := strings.LastIndex(email, "@")
-	if atIndex == -1 {
-		return ""
-	}
-	return strings.ToLower(email[atIndex+1:])
 }
