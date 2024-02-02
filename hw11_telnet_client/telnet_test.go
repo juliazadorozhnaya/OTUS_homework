@@ -62,4 +62,19 @@ func TestTelnetClient(t *testing.T) {
 
 		wg.Wait()
 	})
+
+	// Тест обработки таймаута при подключении
+	t.Run("connection timeout", func(t *testing.T) {
+		serverAddress := "192.0.2.1:9999"
+		timeout, _ := time.ParseDuration("1s")
+
+		in := &bytes.Buffer{}
+		out := &bytes.Buffer{}
+
+		client := NewTelnetClient(serverAddress, timeout, io.NopCloser(in), out)
+		err := client.Connect()
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "timeout")
+	})
 }
