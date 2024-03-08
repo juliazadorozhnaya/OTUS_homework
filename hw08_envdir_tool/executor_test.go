@@ -7,18 +7,32 @@ import (
 )
 
 func TestRunCmd(t *testing.T) {
+	envs := Environment{
+		"BAR": EnvValue{
+			Value:      "bar",
+			NeedRemove: false,
+		},
+		"EMPTY": EnvValue{
+			Value:      "",
+			NeedRemove: false,
+		},
+		"FOO": EnvValue{
+			Value:      "   foo\nwith new line",
+			NeedRemove: false,
+		},
+		"HELLO": EnvValue{
+			Value:      "\"hello\"",
+			NeedRemove: false,
+		},
+		"UNSET": EnvValue{
+			Value:      "",
+			NeedRemove: true,
+		},
+	}
 	t.Run("read", func(t *testing.T) {
-		expected := Environment{
-			"BAR":   {"bar", false},
-			"UNSET": {"", true},
-			"EMPTY": {"", false},
-			"FOO":   {"   foo\nwith new line", false},
-			"HELLO": {"\"hello\"", false},
-		}
-
 		env, err := ReadDir("./testdata/env")
 		require.NoError(t, err)
-		require.Equal(t, expected, env)
+		require.Equal(t, envs, env)
 	})
 
 	t.Run("path not found", func(t *testing.T) {
