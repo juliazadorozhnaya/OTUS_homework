@@ -83,5 +83,4 @@ func TestReadDir(t *testing.T) {
 			require.Equal(t, ErrInvalidFilename, err)
 		})
 	})
-
 }
