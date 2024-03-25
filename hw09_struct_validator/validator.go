@@ -25,16 +25,14 @@ type ValidationErrors []ValidationError
 
 // Error concatenates the error messages of the underlying ValidationError slice.
 func (v ValidationErrors) Error() string {
-	var errMsgs []string
+	errMsgs := make([]string, 0, len(v))
 	for _, ve := range v {
 		errMsgs = append(errMsgs, ve.Error())
 	}
 	return strings.Join(errMsgs, "; ")
 }
 
-var (
-	ErrFieldNotValid = errors.New("validation error")
-)
+var ErrFieldNotValid = errors.New("validation error")
 
 // Validator is an interface that different types of validators will implement.
 type Validator interface {
@@ -64,7 +62,8 @@ func (v StringValidator) Validate(field, tag string, value reflect.Value) (bool,
 				continue
 			}
 			if len(strVal) != requiredLen {
-				errs = append(errs, ValidationError{field, fmt.Errorf("must be %d characters long, but got %d: %w", requiredLen, len(strVal), ErrFieldNotValid)})
+				errs = append(errs, ValidationError{field, fmt.Errorf("must be %d characters long, "+
+					"but got %d: %w", requiredLen, len(strVal), ErrFieldNotValid)})
 			}
 		case "regexp":
 			re, err := regexp.Compile(tagValue)
@@ -73,7 +72,8 @@ func (v StringValidator) Validate(field, tag string, value reflect.Value) (bool,
 				continue
 			}
 			if !re.MatchString(strVal) {
-				errs = append(errs, ValidationError{field, fmt.Errorf("must match the pattern %s: %w", tagValue, ErrFieldNotValid)})
+				errs = append(errs, ValidationError{field, fmt.Errorf("must match the pattern %s: %w",
+					tagValue, ErrFieldNotValid)})
 			}
 		case "in":
 			allowedValues := strings.Split(tagValue, ",")
@@ -85,7 +85,8 @@ func (v StringValidator) Validate(field, tag string, value reflect.Value) (bool,
 				}
 			}
 			if !found {
-				errs = append(errs, ValidationError{field, fmt.Errorf("must be one of [%s]: %w", tagValue, ErrFieldNotValid)})
+				errs = append(errs, ValidationError{field, fmt.Errorf("must be one of [%s]: %w",
+					tagValue, ErrFieldNotValid)})
 			}
 		}
 	}
@@ -99,7 +100,9 @@ func (v StringValidator) Validate(field, tag string, value reflect.Value) (bool,
 // NumberValidator checks int values for various constraints.
 type NumberValidator struct{}
 
-// Validate checks integer fields for minimum, maximum, and inclusion constraints based on the provided tag.
+// Validate checks integer fields for minimum, maximum, and inclusion constraints based on the provided tag
+//
+//nolint:gocognit
 func (v NumberValidator) Validate(field, tag string, value reflect.Value) (bool, ValidationErrors) {
 	var errs ValidationErrors
 	intVal := int(value.Int())
@@ -119,7 +122,8 @@ func (v NumberValidator) Validate(field, tag string, value reflect.Value) (bool,
 				continue
 			}
 			if intVal < min {
-				errs = append(errs, ValidationError{field, fmt.Errorf("must be greater than or equal to %d: %w", min, ErrFieldNotValid)})
+				errs = append(errs, ValidationError{field, fmt.Errorf("must be greater than or equal "+
+					"to %d: %w", min, ErrFieldNotValid)})
 			}
 		case "max":
 			max, err := strconv.Atoi(tagValue)
@@ -128,7 +132,8 @@ func (v NumberValidator) Validate(field, tag string, value reflect.Value) (bool,
 				continue
 			}
 			if intVal > max {
-				errs = append(errs, ValidationError{field, fmt.Errorf("must be less than or equal to %d: %w", max, ErrFieldNotValid)})
+				errs = append(errs, ValidationError{field, fmt.Errorf("must be less than or equal "+
+					"to %d: %w", max, ErrFieldNotValid)})
 			}
 		case "in":
 			inValuesStr := strings.Split(tagValue, ",")
@@ -137,7 +142,8 @@ func (v NumberValidator) Validate(field, tag string, value reflect.Value) (bool,
 			for i, strVal := range inValuesStr {
 				inVal, err := strconv.Atoi(strVal)
 				if err != nil {
-					errs = append(errs, ValidationError{field, fmt.Errorf("invalid value in 'in' constraint: %w", err)})
+					errs = append(errs, ValidationError{field, fmt.Errorf("invalid value in 'in' "+
+						"constraint: %w", err)})
 					continue
 				}
 				inValues[i] = inVal
@@ -146,7 +152,8 @@ func (v NumberValidator) Validate(field, tag string, value reflect.Value) (bool,
 				}
 			}
 			if !valid {
-				errs = append(errs, ValidationError{field, fmt.Errorf("value must be one of [%s]: %w", tagValue, ErrFieldNotValid)})
+				errs = append(errs, ValidationError{field, fmt.Errorf("value must be one of [%s]: %w",
+					tagValue, ErrFieldNotValid)})
 			}
 		}
 	}
@@ -161,11 +168,11 @@ func (v NumberValidator) Validate(field, tag string, value reflect.Value) (bool,
 type SliceValidator struct{}
 
 // Validate implements validation for each element in a slice based on the provided tag.
-func (v SliceValidator) Validate(field string, tag string, Value reflect.Value) (bool, ValidationErrors) {
+func (v SliceValidator) Validate(field string, tag string, value reflect.Value) (bool, ValidationErrors) {
 	validationErrors := make(ValidationErrors, 0)
 
-	for i := 0; i < Value.Len(); i++ {
-		value := Value.Index(i)
+	for i := 0; i < value.Len(); i++ {
+		value := value.Index(i)
 		isValid, err := validateTag(tag, field, value)
 		if !isValid {
 			var ve ValidationErrors
@@ -183,6 +190,8 @@ func (v SliceValidator) Validate(field string, tag string, Value reflect.Value) 
 }
 
 // ValidatorFactory returns a Validator based on the field kind.
+//
+//nolint:exhaustive
 func ValidatorFactory(kind reflect.Kind) (Validator, error) {
 	switch kind {
 	case reflect.Slice:
