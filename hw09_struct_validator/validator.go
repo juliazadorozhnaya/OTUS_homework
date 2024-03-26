@@ -27,7 +27,6 @@ type ValidationErrors []ValidationError
 
 func (v ValidationErrors) Error() string {
 	var builder strings.Builder
-	builder.Grow(len(v))
 	for _, err := range v {
 		builder.WriteString("Field: " + err.Field + ", error: " + err.Err.Error() + "\n")
 	}
