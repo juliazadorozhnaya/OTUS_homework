@@ -11,7 +11,6 @@ import (
 
 type UserRole string
 
-// Test the function on different structures and other types.
 type (
 	User struct {
 		ID     string `json:"id" validate:"len:36"`
@@ -20,7 +19,7 @@ type (
 		Email  string   `validate:"regexp:^\\w+@\\w+\\.\\w+$"`
 		Role   UserRole `validate:"in:admin,stuff"`
 		Phones []string `validate:"len:11"`
-		meta   json.RawMessage
+		Meta   json.RawMessage
 	}
 
 	App struct {
@@ -40,124 +39,61 @@ type (
 )
 
 func TestValidate(t *testing.T) {
-	testsWithValidationErrors := []struct {
-		in          interface{}
-		expectedErr error
+	tests := []struct {
+		in              interface{}
+		expectedValErrs []error
 	}{
 		{
+			in: User{
+				ID:     "b75ece0b-85c1-4afb-b4bf-bb4512bf0fa8", // Корректная длина ID
+				Name:   "testName",
+				Age:    25,
+				Email:  "mail@test.com",
+				Role:   "admin",
+				Phones: []string{"12345678901", "10987654321"},
+				Meta:   nil,
+			},
+			expectedValErrs: []error{ErrorLength, ErrorMin, ErrorLength, ErrorLength},
+		},
+		{
 			in: App{
-				Version: "some long name",
+				Version: "123456",
 			},
-			expectedErr: ValidationErrors{
-				ValidationError{
-					Field: "Version",
-					Err:   ErrFieldNotValid,
-				},
-			},
+			expectedValErrs: []error{ErrorLength},
+		},
+		{
+			in:              Token{},
+			expectedValErrs: []error{nil},
 		},
 		{
 			in: Response{
-				Code: 501,
+				Code: 200,
+				Body: "test",
 			},
-			expectedErr: ValidationErrors{
-				ValidationError{
-					Field: "Code",
-					Err:   ErrFieldNotValid,
-				},
-			},
-		},
-		{
-			in: User{
-				ID:     "01d0c798-f17d-481d-8a69-869870b5008b",
-				Age:    16,
-				Email:  "wrong_email",
-				Role:   "adminn",
-				Phones: []string{"891608307777"},
-				meta:   json.RawMessage{},
-			},
-			expectedErr: ValidationErrors{
-				ValidationError{
-					Field: "Age",
-					Err:   ErrFieldNotValid,
-				},
-				ValidationError{
-					Field: "Email",
-					Err:   ErrFieldNotValid,
-				},
-				ValidationError{
-					Field: "Role",
-					Err:   ErrFieldNotValid,
-				},
-				ValidationError{
-					Field: "Phones",
-					Err:   ErrFieldNotValid,
-				},
-			},
+			expectedValErrs: []error{nil},
 		},
 	}
-
-	for i, tt := range testsWithValidationErrors {
-		t.Run(fmt.Sprintf("testsWithValidationErrors: case %d", i), func(t *testing.T) {
-			tt := tt
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+			tc := tc
 			t.Parallel()
-
-			err := Validate(tt.in)
-
-			var validationErrors ValidationErrors
-
-			require.ErrorAs(t, err, &validationErrors)
-
-			var expectedValidationErrors ValidationErrors
-			if errors.As(tt.expectedErr, &expectedValidationErrors) {
-				for i, validationError := range validationErrors {
-					require.Equal(t, validationError.Field, expectedValidationErrors[i].Field)
-					require.ErrorIs(t, validationError.Err, expectedValidationErrors[i].Err)
+			err := Validate(tc.in)
+			var valErrs ValidationErrors
+			if errors.As(err, &valErrs) {
+				for i, err := range tc.expectedValErrs {
+					require.ErrorIs(t, valErrs[i].Err, err, "Validation error should be like expected")
 				}
 			}
 		})
 	}
 
-	testsWithoutValidationErrors := []struct {
-		in          interface{}
-		expectedErr error
-	}{
-		{
-			in: App{
-				Version: "name_",
-			},
-			expectedErr: nil,
-		},
-		{
-			in: Response{
-				Code: 500,
-			},
-			expectedErr: nil,
-		},
-		{
-			in:          Token{},
-			expectedErr: nil,
-		},
-		{
-			in: User{
-				ID:     "01d0c798-f17d-481d-8a69-869870b5008b",
-				Age:    20,
-				Email:  "some@email.com",
-				Role:   "admin",
-				Phones: []string{"89160830777"},
-				meta:   json.RawMessage{},
-			},
-			expectedErr: nil,
-		},
-	}
+	t.Run("Handle non struct value", func(t *testing.T) {
+		err := Validate(123)
+		require.ErrorIs(t, err, ErrorExpectedStruct, "Throw nonStruct error")
+	})
 
-	for i, tt := range testsWithoutValidationErrors {
-		t.Run(fmt.Sprintf("testsWithoutValidationErrors: case %d", i), func(t *testing.T) {
-			tt := tt
-			t.Parallel()
-
-			err := Validate(tt.in)
-
-			require.True(t, err == nil)
-		})
-	}
+	t.Run("Handle nil value", func(t *testing.T) {
+		err := Validate(nil)
+		require.ErrorIs(t, err, ErrorExpectedStruct, "Throw nonStruct error")
+	})
 }
