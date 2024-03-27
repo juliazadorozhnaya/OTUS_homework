@@ -1,19 +1,18 @@
-package router
+package server
 
 import (
 	"fmt"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/server"
 	"net"
 	"net/http"
 	"time"
 )
 
 type Middleware struct {
-	logger  internalhttp.Logger
+	logger  Logger
 	Handler http.Handler
 }
 
-func NewMiddleware(logger internalhttp.Logger, httpHandler http.Handler) *Middleware {
+func NewMiddleware(logger Logger, httpHandler http.Handler) *Middleware {
 	return &Middleware{
 		logger:  logger,
 		Handler: httpHandler,

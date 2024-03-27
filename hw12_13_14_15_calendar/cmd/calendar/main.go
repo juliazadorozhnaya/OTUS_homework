@@ -13,9 +13,9 @@ import (
 	"path"
 	"syscall"
 
+	internalhttp "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/api/server"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/config"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/server"
 	memorystorage "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/storage/memory"
 )
 
@@ -67,17 +67,17 @@ func main() {
 		<-ctx.Done()
 
 		if err := server.Stop(); err != nil {
-			log.Error("failed to stop server server: " + err.Error())
+			log.Error("failed to stop api api: " + err.Error())
 		}
 	}()
 
 	log.Info("app is running...")
 
 	if err := server.Start(); !errors.Is(err, http.ErrServerClosed) && err != nil {
-		log.Error("failed to start server server: " + err.Error())
+		log.Error("failed to start api api: " + err.Error())
 		cancel()
 		os.Exit(1) //nolint:gocritic
 	}
 
-	log.Info("server closed")
+	log.Info("api closed")
 }

@@ -50,8 +50,8 @@ func New(configPath string) (Config, error) {
 			Password:     viper.GetString("database.Password"),
 		},
 		Server: ServerConfig{
-			Host: viper.GetString("server.Host"),
-			Port: viper.GetString("server.Port"),
+			Host: viper.GetString("api.Host"),
+			Port: viper.GetString("api.Port"),
 		},
 	}, nil
 }

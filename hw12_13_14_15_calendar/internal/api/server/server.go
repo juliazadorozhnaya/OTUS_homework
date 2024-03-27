@@ -1,12 +1,11 @@
-package internalhttp
+package server
 
 import (
 	"context"
 	"fmt"
+
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/config"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
-	handler "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/handler"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/router"
 	"net"
 	"net/http"
 )
@@ -37,12 +36,12 @@ type Application interface {
 }
 
 func NewServer(logger Logger, app Application, config config.ServerConfig) *Server {
-	hand := handler.NewHandler(logger)
+	hand := NewHandler(logger)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/hello", hand.GetHello)
 
-	middleware := router.NewMiddleware(logger, mux)
+	middleware := NewMiddleware(logger, mux)
 	middleware.Logging()
 
 	return &Server{
@@ -56,7 +55,7 @@ func NewServer(logger Logger, app Application, config config.ServerConfig) *Serv
 }
 
 func (s *Server) Start() error {
-	s.logger.Info(fmt.Sprintf("server listening: %s", s.srv.Addr))
+	s.logger.Info(fmt.Sprintf("api listening: %s", s.srv.Addr))
 
 	if err := s.srv.ListenAndServe(); err != nil {
 		return err
