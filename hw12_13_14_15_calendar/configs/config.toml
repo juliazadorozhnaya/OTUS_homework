@@ -1,5 +1,14 @@
 [logger]
-level = "INFO"
+level = "info"
 
-# TODO
-# ...
+[database]
+Prefix       = "postgresql"
+DatabaseName = "calendardb"
+Host         = "localhost"
+Port         = "5436"
+UserName     = "postgres"
+Password     = "1234512345"
+
+[server]
+Host         = "localhost"
+Port         = "2345"

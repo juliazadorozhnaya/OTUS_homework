@@ -16,19 +16,37 @@ build-img:
 		-t $(DOCKER_IMG) \
 		-f build/Dockerfile .
 
+pull-postgres:
+	docker pull postgres
+
 run-img: build-img
 	docker run $(DOCKER_IMG)
 
 version: build
 	$(BIN) version
 
-test:
-	go test -race ./internal/... ./pkg/...
-
 install-lint-deps:
-	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.50.1
+	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.41.1
 
 lint: install-lint-deps
 	golangci-lint run ./...
 
-.PHONY: build run build-img run-img version test lint
+postgres:
+	docker run --name postgresdb --env POSTGRES_PASSWORD="1234512345" --publish "5436:5432" --detach --rm postgres
+
+createdb:
+	docker exec -it postgresdb createdb --username postgres calendardb
+
+migrateup:
+	migrate -path migrations -database "postgresql://postgres:1234512345@localhost:5436/calendardb?sslmode=disable" -verbose up
+
+test:
+	go test -race ./internal/config ./internal/logger ./internal/storage/memory
+
+migratedown:
+	migrate -path migrations -database "postgresql://postgres:1234512345@localhost:5436/calendardb?sslmode=disable" -verbose down
+
+dropdb:
+	docker exec -it postgresdb dropdb calendardb
+
+.PHONY: build run build-img run-img version lint pull-postgres postgres createdb migrateup test migratedown dropdb
