@@ -77,7 +77,6 @@ func checkValue(valErrs ValidationErrors, fName string, validateTag string, rv r
 		for i := 0; i < rv.Len(); i++ {
 			newValErrs = checkValue(newValErrs, fName, validateTag, rv.Index(i))
 		}
-	default:
 	}
 	if len(errs) > 0 {
 		for _, err := range errs {
