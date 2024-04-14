@@ -68,6 +68,8 @@ func checkValue(valErrs ValidationErrors, fName string, validateTag string, rv r
 		errs       []error
 		newValErrs = valErrs
 	)
+
+	//nolint:exhaustive
 	switch rv.Kind() {
 	case reflect.String, reflect.Int:
 		errs = validateValue(validateTag, rv)
@@ -75,6 +77,7 @@ func checkValue(valErrs ValidationErrors, fName string, validateTag string, rv r
 		for i := 0; i < rv.Len(); i++ {
 			newValErrs = checkValue(newValErrs, fName, validateTag, rv.Index(i))
 		}
+	default:
 	}
 	if len(errs) > 0 {
 		for _, err := range errs {
@@ -203,6 +206,7 @@ func checkIn(rv reflect.Value, ruleValue string) bool {
 	ins := strings.Split(ruleValue, ",")
 	isValid := false
 
+	//nolint:exhaustive
 	switch rv.Kind() {
 	case reflect.Int:
 		intValue := int(rv.Int())
