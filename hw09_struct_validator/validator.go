@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// Предопределенные ошибки для различных типов нарушений валидации.
 var (
 	ErrorLength         = errors.New("length")
 	ErrorRegex          = errors.New("regex")
@@ -16,15 +17,22 @@ var (
 	ErrorMax            = errors.New("less")
 	ErrorIn             = errors.New("lots of")
 	ErrorExpectedStruct = errors.New("expected a struct")
+
+	// Кэш для регулярных выражений и целочисленных значений.
+	regexCache = make(map[string]*regexp.Regexp)
+	intCache   = make(map[string]int)
 )
 
+// ValidationError описывает ошибку валидации для конкретного поля.
 type ValidationError struct {
 	Field string
 	Err   error
 }
 
+// ValidationErrors представляет собой список ошибок валидации.
 type ValidationErrors []ValidationError
 
+// Error реализует интерфейс ошибки для ValidationErrors.
 func (v ValidationErrors) Error() string {
 	var builder strings.Builder
 	for _, err := range v {
@@ -33,12 +41,12 @@ func (v ValidationErrors) Error() string {
 	return builder.String()
 }
 
-// Validate - функция для валидации полей структуры, основываясь на тегах validate.
+// Validate выполняет валидацию структуры на основе тегов `validate`.
 func Validate(v interface{}) error {
 	validationErrors := make(ValidationErrors, 0)
 	value := reflect.ValueOf(v)
 	if value.Kind() != reflect.Struct {
-		return fmt.Errorf("%w, received %s ", ErrorExpectedStruct, value.Kind())
+		return fmt.Errorf("%w, received %s", ErrorExpectedStruct, value.Kind())
 	}
 	for i := 0; i < value.NumField(); i++ {
 		field := value.Type().Field(i)
@@ -54,91 +62,29 @@ func Validate(v interface{}) error {
 	return nil
 }
 
-// checkLen - проверяет длину строки на соответствие указанному значению.
-func checkLen(rv reflect.Value, ruleValue string) bool {
-	if rv.Kind() == reflect.String {
-		intValue, err := strconv.Atoi(ruleValue)
-		if err != nil {
-			return false
-		}
-		return rv.Len() == intValue
-	}
-	return false
-}
-
-// checkRegex - проверяет соответствие строки регулярному выражению.
-func checkRegex(rv reflect.Value, ruleValue string) bool {
-	if rv.Kind() == reflect.String {
-		rx, err := regexp.Compile(ruleValue)
-		if err != nil {
-			return false
-		}
-		return rx.Match([]byte(rv.String()))
-	}
-	return false
-}
-
-// checkMin - проверяет, что числовое значение больше указанного минимума.
-func checkMin(rv reflect.Value, ruleValue string) bool {
-	if rv.Kind() == reflect.Int {
-		intValue := int(rv.Int())
-		min, err := strconv.Atoi(ruleValue)
-		if err != nil {
-			return false
-		}
-		return intValue > min
-	}
-	return false
-}
-
-// checkMax - проверяет, что числовое значение меньше указанного максимума.
-func checkMax(rv reflect.Value, ruleValue string) bool {
-	if rv.Kind() == reflect.Int {
-		intValue := int(rv.Int())
-		max, err := strconv.Atoi(ruleValue)
-		if err != nil {
-			return false
-		}
-		return intValue < max
-	}
-	return false
-}
-
-// checkIn - проверяет, содержится ли значение в указанном наборе.
-func checkIn(rv reflect.Value, ruleValue string) bool {
-	ins := strings.Split(ruleValue, ",")
-	isValid := false
-
+// checkValue обрабатывает значение поля и выполняет валидацию согласно правилам.
+func checkValue(valErrs ValidationErrors, fName string, validateTag string, rv reflect.Value) ValidationErrors {
+	var (
+		errs       []error
+		newValErrs = valErrs
+	)
 	switch rv.Kind() {
-	case reflect.Int:
-		intValue := int(rv.Int())
-
-		for _, in := range ins {
-			in, err := strconv.Atoi(in)
-			if err != nil {
-				continue
-			}
-			if in == intValue {
-				isValid = true
-			}
+	case reflect.String, reflect.Int:
+		errs = validateValue(validateTag, rv)
+	case reflect.Slice:
+		for i := 0; i < rv.Len(); i++ {
+			newValErrs = checkValue(newValErrs, fName, validateTag, rv.Index(i))
 		}
-	case reflect.String:
-		strValue := rv.String()
-
-		for _, in := range ins {
-			if in == strValue {
-				isValid = true
-			}
-		}
-	case reflect.Array, reflect.Bool, reflect.Chan, reflect.Complex128, reflect.Complex64, reflect.Float32,
-		reflect.Float64, reflect.Func, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int8, reflect.Interface,
-		reflect.Invalid, reflect.Map, reflect.Ptr, reflect.Struct, reflect.Slice, reflect.Uint, reflect.Uint16,
-		reflect.Uint32, reflect.Uint64, reflect.Uint8, reflect.Uintptr, reflect.UnsafePointer:
 	}
-	return isValid
+	if len(errs) > 0 {
+		for _, err := range errs {
+			newValErrs = append(newValErrs, ValidationError{fName, err})
+		}
+	}
+	return newValErrs
 }
 
-// validateValue - валидирует значение на основе правил, указанных в теге validate.
+// validateValue валидирует значение на основе правил, указанных в теге validate.
 func validateValue(validateTag string, rv reflect.Value) []error {
 	rules := strings.Split(validateTag, "|")
 	errs := make([]error, 0)
@@ -184,32 +130,98 @@ func validateValue(validateTag string, rv reflect.Value) []error {
 	return errs
 }
 
-// checkValue - обрабатывает значение поля и выполняет валидацию согласно правилам.
-func checkValue(valErrs ValidationErrors, fName string, validateTag string, rv reflect.Value) ValidationErrors {
-	var (
-		errs       []error
-		newValErrs = valErrs
-	)
+// getIntFromCache извлекает целочисленное значение из кэша или добавляет его при отсутствии.
+func getIntFromCache(str string) (int, error) {
+	if val, exists := intCache[str]; exists {
+		return val, nil
+	}
+	val, err := strconv.Atoi(str)
+	if err != nil {
+		return 0, err
+	}
+	intCache[str] = val
+	return val, nil
+}
+
+// checkLen проверяет длину строки на соответствие указанному значению.
+func checkLen(rv reflect.Value, ruleValue string) bool {
+	if rv.Kind() == reflect.String {
+		intValue, err := getIntFromCache(ruleValue)
+		if err != nil {
+			return false
+		}
+		return rv.Len() == intValue
+	}
+	return false
+}
+
+// checkRegex проверяет соответствие строки регулярному выражению.
+func checkRegex(rv reflect.Value, ruleValue string) bool {
+	if rv.Kind() == reflect.String {
+		rx, exists := regexCache[ruleValue]
+		if !exists {
+			var err error
+			rx, err = regexp.Compile(ruleValue)
+			if err != nil {
+				return false
+			}
+			regexCache[ruleValue] = rx
+		}
+		return rx.MatchString(rv.String())
+	}
+	return false
+}
+
+// checkMin проверяет, что числовое значение больше указанного минимума.
+func checkMin(rv reflect.Value, ruleValue string) bool {
+	if rv.Kind() == reflect.Int {
+		intValue := int(rv.Int())
+		min, err := getIntFromCache(ruleValue)
+		if err != nil {
+			return false
+		}
+		return intValue > min
+	}
+	return false
+}
+
+// checkMax проверяет, что числовое значение меньше указанного максимума.
+func checkMax(rv reflect.Value, ruleValue string) bool {
+	if rv.Kind() == reflect.Int {
+		intValue := int(rv.Int())
+		max, err := getIntFromCache(ruleValue)
+		if err != nil {
+			return false
+		}
+		return intValue < max
+	}
+	return false
+}
+
+// checkIn проверяет, содержится ли значение в указанном наборе.
+func checkIn(rv reflect.Value, ruleValue string) bool {
+	ins := strings.Split(ruleValue, ",")
+	isValid := false
+
 	switch rv.Kind() {
-	case reflect.String:
-		errs = validateValue(validateTag, rv)
 	case reflect.Int:
-		errs = validateValue(validateTag, rv)
-	case reflect.Slice:
-		for i := 0; i < rv.Len(); i++ {
-			newValErrs = checkValue(newValErrs, fName, validateTag, rv.Index(i))
+		intValue := int(rv.Int())
+		for _, in := range ins {
+			inInt, err := getIntFromCache(in)
+			if err != nil {
+				continue
+			}
+			if inInt == intValue {
+				isValid = true
+			}
 		}
-	case reflect.Array, reflect.Bool, reflect.Chan, reflect.Complex128, reflect.Complex64, reflect.Float32,
-		reflect.Float64, reflect.Func, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int8, reflect.Interface,
-		reflect.Invalid, reflect.Map, reflect.Ptr, reflect.Struct, reflect.Uint, reflect.Uint16,
-		reflect.Uint32, reflect.Uint64, reflect.Uint8, reflect.Uintptr, reflect.UnsafePointer:
-	}
-
-	if len(errs) > 0 {
-		for _, err := range errs {
-			newValErrs = append(newValErrs, ValidationError{fName, err})
+	case reflect.String:
+		strValue := rv.String()
+		for _, in := range ins {
+			if in == strValue {
+				isValid = true
+			}
 		}
 	}
-
-	return newValErrs
+	return isValid
 }
