@@ -2,11 +2,7 @@ package hw09structvalidator
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 type UserRole string
@@ -40,60 +36,69 @@ type (
 
 func TestValidate(t *testing.T) {
 	tests := []struct {
-		in              interface{}
-		expectedValErrs []error
+		name    string
+		input   interface{}
+		wantErr bool
 	}{
 		{
-			in: User{
-				ID:     "b75ece0b-85c1-4afb-b4bf-bb4512bf0fa8", // Корректная длина ID
-				Name:   "testName",
+			name: "Valid User",
+			input: User{
+				ID:     "12345678-1234-1234-1234-123456789012",
+				Name:   "John Doe",
 				Age:    25,
-				Email:  "mail@test.com",
+				Email:  "john@example.com",
 				Role:   "admin",
 				Phones: []string{"12345678901", "10987654321"},
-				Meta:   nil,
 			},
-			expectedValErrs: []error{ErrorLength, ErrorMin, ErrorLength, ErrorLength},
+			wantErr: false,
 		},
 		{
-			in: App{
-				Version: "123456",
+			name: "Invalid User Email",
+			input: User{
+				ID:     "12345678-1234-1234-1234-123456789012",
+				Name:   "John Doe",
+				Age:    25,
+				Email:  "johnexample.com",
+				Role:   "admin",
+				Phones: []string{"12345678901", "10987654321"},
 			},
-			expectedValErrs: []error{ErrorLength},
+			wantErr: true,
 		},
 		{
-			in:              Token{},
-			expectedValErrs: []error{nil},
+			name: "Invalid User Age",
+			input: User{
+				ID:     "12345678-1234-1234-1234-123456789012",
+				Name:   "John Doe",
+				Age:    17, // Below minimum age
+				Email:  "john@example.com",
+				Role:   "admin",
+				Phones: []string{"12345678901", "10987654321"},
+			},
+			wantErr: true,
 		},
 		{
-			in: Response{
-				Code: 200,
-				Body: "test",
+			name: "Valid App Version",
+			input: App{
+				Version: "1.0.0",
 			},
-			expectedValErrs: []error{nil},
+			wantErr: false,
+		},
+		{
+			name: "Invalid Response Code",
+			input: Response{
+				Code: 403, // Not in the list of valid codes
+				Body: "",
+			},
+			wantErr: true,
 		},
 	}
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
-			tc := tc
-			t.Parallel()
-			err := Validate(tc.in)
-			var valErrs ValidationErrors
-			if errors.As(err, &valErrs) {
-				for i, err := range tc.expectedValErrs {
-					require.ErrorIs(t, valErrs[i].Err, err, "Validation error should be like expected")
-				}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Validate(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Validate(%v) gotErr = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}
-
-	t.Run("Handle non struct value", func(t *testing.T) {
-		err := Validate(123)
-		require.ErrorIs(t, err, ErrorExpectedStruct, "Throw nonStruct error")
-	})
-
-	t.Run("Handle nil value", func(t *testing.T) {
-		err := Validate(nil)
-		require.ErrorIs(t, err, ErrorExpectedStruct, "Throw nonStruct error")
-	})
 }

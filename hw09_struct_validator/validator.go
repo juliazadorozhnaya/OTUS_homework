@@ -11,6 +11,7 @@ import (
 
 // Предопределенные ошибки для различных типов нарушений валидации.
 var (
+	ErrInvalidFieldType = errors.New("invalid field type for validation")
 	ErrorLength         = errors.New("length")
 	ErrorRegex          = errors.New("regex")
 	ErrorMin            = errors.New("greater")
@@ -62,6 +63,17 @@ func Validate(v interface{}) error {
 	return nil
 }
 
+func isTypeValidForRule(ruleType string, rv reflect.Value) bool {
+	switch ruleType {
+	case "len", "regexp", "in":
+		return rv.Kind() == reflect.String
+	case "min", "max":
+		return rv.Kind() == reflect.Int
+	default:
+		return true
+	}
+}
+
 // checkValue обрабатывает значение поля и выполняет валидацию согласно правилам.
 func checkValue(valErrs ValidationErrors, fName string, validateTag string, rv reflect.Value) ValidationErrors {
 	var (
@@ -99,6 +111,9 @@ func validateValue(validateTag string, rv reflect.Value) []error {
 
 		rType, rValue := r[0], r[1]
 		var err error
+		if !isTypeValidForRule(rType, rv) {
+			return []error{fmt.Errorf("%w: %s rule cannot be applied to %s type", ErrInvalidFieldType, rType, rv.Kind())}
+		}
 
 		switch rType {
 		case "len":
