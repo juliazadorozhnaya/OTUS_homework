@@ -9,31 +9,26 @@ import (
 	"strings"
 )
 
-// Предопределенные ошибки для различных типов нарушений валидации.
 var (
-	ErrInvalidFieldType = errors.New("invalid field type for validation")
-	ErrorLength         = errors.New("length")
-	ErrorRegex          = errors.New("regex")
-	ErrorMin            = errors.New("greater")
-	ErrorMax            = errors.New("less")
-	ErrorIn             = errors.New("lots of")
-	ErrorExpectedStruct = errors.New("expected a struct")
-
-	// Кэш для регулярных выражений и целочисленных значений.
-	regexCache = make(map[string]*regexp.Regexp)
-	intCache   = make(map[string]int)
+	ErrInvalidFieldType   = errors.New("invalid field type for validation")
+	ErrorLength           = errors.New("length")
+	ErrorRegex            = errors.New("regex")
+	ErrorMin              = errors.New("greater")
+	ErrorMax              = errors.New("less")
+	ErrorIn               = errors.New("lots of")
+	ErrorExpectedStruct   = errors.New("expected a struct")
+	ErrorInvalidValidator = errors.New("invalid validator for the type")
+	regexCache            = make(map[string]*regexp.Regexp)
+	intCache              = make(map[string]int)
 )
 
-// ValidationError описывает ошибку валидации для конкретного поля.
 type ValidationError struct {
 	Field string
 	Err   error
 }
 
-// ValidationErrors представляет собой список ошибок валидации.
 type ValidationErrors []ValidationError
 
-// Error реализует интерфейс ошибки для ValidationErrors.
 func (v ValidationErrors) Error() string {
 	var builder strings.Builder
 	for _, err := range v {
@@ -42,7 +37,6 @@ func (v ValidationErrors) Error() string {
 	return builder.String()
 }
 
-// Validate выполняет валидацию структуры на основе тегов `validate`.
 func Validate(v interface{}) error {
 	validationErrors := make(ValidationErrors, 0)
 	value := reflect.ValueOf(v)
@@ -55,10 +49,34 @@ func Validate(v interface{}) error {
 		if !ok {
 			continue
 		}
-		validationErrors = checkValue(validationErrors, field.Name, validateTag, value.Field(i))
+		err := checkValue(&validationErrors, field.Name, validateTag, value.Field(i))
+		if err != nil {
+			return err
+		}
 	}
 	if len(validationErrors) > 0 {
 		return validationErrors
+	}
+	return nil
+}
+
+func checkValue(valErrs *ValidationErrors, fName string, validateTag string, rv reflect.Value) error {
+	var errs []error
+	switch rv.Kind() {
+	case reflect.String, reflect.Int:
+		errs = validateValue(validateTag, rv)
+	case reflect.Slice:
+		for i := 0; i < rv.Len(); i++ {
+			err := checkValue(valErrs, fName, validateTag, rv.Index(i))
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if len(errs) > 0 {
+		for _, err := range errs {
+			*valErrs = append(*valErrs, ValidationError{fName, err})
+		}
 	}
 	return nil
 }
@@ -74,47 +92,19 @@ func isTypeValidForRule(ruleType string, rv reflect.Value) bool {
 	}
 }
 
-// checkValue обрабатывает значение поля и выполняет валидацию согласно правилам.
-func checkValue(valErrs ValidationErrors, fName string, validateTag string, rv reflect.Value) ValidationErrors {
-	var (
-		errs       []error
-		newValErrs = valErrs
-	)
-
-	//nolint:exhaustive
-	switch rv.Kind() {
-	case reflect.String, reflect.Int:
-		errs = validateValue(validateTag, rv)
-	case reflect.Slice:
-		for i := 0; i < rv.Len(); i++ {
-			newValErrs = checkValue(newValErrs, fName, validateTag, rv.Index(i))
-		}
-	}
-	if len(errs) > 0 {
-		for _, err := range errs {
-			newValErrs = append(newValErrs, ValidationError{fName, err})
-		}
-	}
-	return newValErrs
-}
-
-// validateValue валидирует значение на основе правил, указанных в теге validate.
 func validateValue(validateTag string, rv reflect.Value) []error {
 	rules := strings.Split(validateTag, "|")
-	errs := make([]error, 0)
-
+	var errs []error
 	for _, rule := range rules {
 		r := strings.Split(rule, ":")
 		if len(r) != 2 {
 			continue
 		}
-
 		rType, rValue := r[0], r[1]
-		var err error
 		if !isTypeValidForRule(rType, rv) {
-			return []error{fmt.Errorf("%w: %s rule cannot be applied to %s type", ErrInvalidFieldType, rType, rv.Kind())}
+			return []error{fmt.Errorf("%w: %s rule cannot be applied to %s type", ErrorInvalidValidator, rType, rv.Kind())}
 		}
-
+		var err error
 		switch rType {
 		case "len":
 			if !checkLen(rv, rValue) {
@@ -139,7 +129,6 @@ func validateValue(validateTag string, rv reflect.Value) []error {
 		default:
 			continue
 		}
-
 		if err != nil {
 			errs = append(errs, err)
 		}
