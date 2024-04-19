@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	ErrInvalidFieldType   = errors.New("invalid field type for validation")
 	ErrorLength           = errors.New("length")
 	ErrorRegex            = errors.New("regex")
 	ErrorMin              = errors.New("greater")
@@ -62,6 +61,7 @@ func Validate(v interface{}) error {
 
 func checkValue(valErrs *ValidationErrors, fName string, validateTag string, rv reflect.Value) error {
 	var errs []error
+	//nolint:exhaustive
 	switch rv.Kind() {
 	case reflect.String, reflect.Int:
 		errs = validateValue(validateTag, rv)
