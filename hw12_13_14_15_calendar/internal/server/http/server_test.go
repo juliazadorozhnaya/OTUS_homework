@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	memorystorage "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/storage/memory"
 	"net"
 	"net/http"
 	"sync"
@@ -13,6 +12,7 @@ import (
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/app"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/config"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/logger"
+	memorystorage "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/storage/memory"
 	"github.com/stretchr/testify/require"
 )
 

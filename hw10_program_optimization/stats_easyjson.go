@@ -4,6 +4,7 @@ package hw10programoptimization
 
 import (
 	json "encoding/json"
+
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
@@ -48,6 +49,7 @@ func easyjsonE3ab7953DecodeGithubComJuliazadorozhnayaOtusHomeworkHw10ProgramOpti
 		in.Consumed()
 	}
 }
+
 func easyjsonE3ab7953EncodeGithubComJuliazadorozhnayaOtusHomeworkHw10ProgramOptimization(out *jwriter.Writer, in UserEmail) {
 	out.RawByte('{')
 	first := true
