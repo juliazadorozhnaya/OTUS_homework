@@ -23,10 +23,11 @@ func NewEventServer(logger server.Logger, app server.Application) *EventServer {
 func (s *EventServer) SelectEvents(_ *Void, stream EventService_SelectEventsServer) error {
 	defer func(start time.Time) {
 		duration := time.Since(start)
-		s.logger.Info("SelectEvents", stream.Context(), start, duration)
+		s.logger.Info("SelectEvents", start, duration)
 	}(time.Now())
 
-	events, err := s.app.SelectEvents(stream.Context())
+	ctx := stream.Context()
+	events, err := s.app.SelectEvents(ctx)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to select events: %v", err)
 	}
