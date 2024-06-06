@@ -12,10 +12,7 @@ LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%d
 test:
 	go test -race ./internal/...
 
-install-lint-deps:
-	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.52.2
-
-lint: install-lint-deps
+lint:
 	golangci-lint run ./...
 
 generate:
