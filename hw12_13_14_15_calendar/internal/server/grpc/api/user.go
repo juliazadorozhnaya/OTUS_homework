@@ -23,10 +23,10 @@ func NewUserServer(logger server.Logger, app server.Application) *UserServer {
 func (s *UserServer) SelectUsers(_ *Void, stream UserService_SelectUsersServer) error {
 	defer func(start time.Time) {
 		duration := time.Since(start)
-		s.logger.Info("SelectUsers", stream.Context(), start, duration) //nolint: staticcheck
+		s.logger.Info("SelectUsers", stream.Context(), start, duration)
 	}(time.Now())
 
-	users, err := s.app.SelectUsers(stream.Context()) //nolint: staticcheck
+	users, err := s.app.SelectUsers(stream.Context())
 	if err != nil {
 		return err
 	}
