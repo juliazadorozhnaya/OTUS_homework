@@ -20,13 +20,15 @@ func NewUserServer(logger server.Logger, app server.Application) *UserServer {
 	}
 }
 
-func (s *UserServer) SelectUsers(_ *Void, selectUsers UserService_SelectUsersServer) error {
+func (s *UserServer) SelectUsers(_ *Void, stream UserService_SelectUsersServer) error {
 	defer func(start time.Time) {
 		duration := time.Since(start)
-		s.logger.Info("SelectUsers", selectUsers.Context(), start, duration)
+		//nolint: staticcheck
+		s.logger.Info("SelectUsers", stream.Context(), start, duration)
 	}(time.Now())
 
-	users, err := s.app.SelectUsers(selectUsers.Context())
+	//nolint: staticcheck
+	users, err := s.app.SelectUsers(stream.Context())
 	if err != nil {
 		return err
 	}
@@ -40,7 +42,7 @@ func (s *UserServer) SelectUsers(_ *Void, selectUsers UserService_SelectUsersSer
 			Age:       user.GetAge(),
 		}
 
-		err := selectUsers.Send(&e)
+		err := stream.Send(&e)
 		if err != nil {
 			return err
 		}
