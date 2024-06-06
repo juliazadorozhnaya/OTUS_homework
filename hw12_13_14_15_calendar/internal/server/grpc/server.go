@@ -1,11 +1,13 @@
 package servergrpc
 
 import (
+	"context"
 	"fmt"
+	"net"
+
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/grpc/api"
 	"google.golang.org/grpc"
-	"net"
 )
 
 type Server struct {
@@ -15,6 +17,7 @@ type Server struct {
 	srv     *grpc.Server
 }
 
+// NewServer создает новый gRPC сервер с указанным логгером, приложением и конфигурацией.
 func NewServer(logger server.Logger, app server.Application, config server.Config) *Server {
 	srv := grpc.NewServer()
 
@@ -32,21 +35,30 @@ func NewServer(logger server.Logger, app server.Application, config server.Confi
 	}
 }
 
+// Start запускает gRPC сервер.
 func (s *Server) Start() error {
 	listener, err := net.Listen("tcp", s.address)
 	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to start gRPC server: %s", err))
 		return err
 	}
 
-	s.logger.Info(fmt.Sprintf("grpc server listening: %s", s.address))
+	s.logger.Info(fmt.Sprintf("gRPC server listening: %s", s.address))
 	if err := s.srv.Serve(listener); err != nil {
+		s.logger.Fatal(fmt.Sprintf("gRPC server failed to serve: %s", err))
 		return err
 	}
 
+	s.logger.Debug("gRPC server started successfully")
 	return nil
 }
 
-func (s *Server) Stop() error {
-	s.srv.Stop()
+// Stop останавливает gRPC сервер.
+func (s *Server) Stop(_ context.Context) error {
+	s.logger.Info("gRPC server shutting down...")
+
+	s.srv.GracefulStop()
+	s.logger.Debug("gRPC server stopped gracefully")
+
 	return nil
 }

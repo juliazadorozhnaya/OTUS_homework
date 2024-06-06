@@ -2,20 +2,21 @@ package sqlstorage
 
 import (
 	"context"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
-	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
+	"github.com/stretchr/testify/require"
 )
 
-var (
-	dsn = "postgresql://postgres:1234512345@postgres:/postgres?sslmode=disable"
-)
+var dsn = "postgres://postgres:1234512345@localhost:5432/calendardb?sslmode=disable"
 
 func TestStorage(t *testing.T) {
 	mutex := sync.Mutex{}
-	s := New(dsn)
+	s, err := New(dsn)
+	require.NoError(t, err)
+	require.NotNil(t, s)
 
 	t.Run("user case", func(t *testing.T) {
 		mutex.Lock()
@@ -78,17 +79,17 @@ func TestStorage(t *testing.T) {
 			{
 				Title:        "Project Meeting",
 				Description:  "Discuss project requirements",
-				Beginning:    time.Date(2023, time.June, 22, 10, 0, 0, 0, time.UTC),
-				Finish:       time.Date(2023, time.June, 22, 11, 0, 0, 0, time.UTC),
-				Notification: time.Date(2023, time.June, 22, 9, 0, 0, 0, time.UTC),
+				Beginning:    time.Date(2024, time.June, 22, 10, 0, 0, 0, time.UTC),
+				Finish:       time.Date(2024, time.June, 22, 11, 0, 0, 0, time.UTC),
+				Notification: time.Date(2024, time.June, 22, 9, 0, 0, 0, time.UTC),
 				UserID:       user.ID,
 			},
 			{
 				Title:        "Team Building",
 				Description:  "Outdoor team-building activities",
-				Beginning:    time.Date(2023, time.June, 22, 14, 0, 0, 0, time.UTC),
-				Finish:       time.Date(2023, time.June, 22, 17, 0, 0, 0, time.UTC),
-				Notification: time.Date(2023, time.June, 22, 13, 0, 0, 0, time.UTC),
+				Beginning:    time.Date(2024, time.June, 22, 14, 0, 0, 0, time.UTC),
+				Finish:       time.Date(2024, time.June, 22, 17, 0, 0, 0, time.UTC),
+				Notification: time.Date(2024, time.June, 22, 13, 0, 0, 0, time.UTC),
 				UserID:       user.ID,
 			},
 		}

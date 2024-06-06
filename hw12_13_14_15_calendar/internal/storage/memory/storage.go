@@ -3,19 +3,22 @@ package memorystorage
 import (
 	"context"
 	"errors"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 )
 
 type Storage struct {
-	mu     sync.Mutex
+	mu     sync.RWMutex
 	events map[string]model.Event
 	users  map[string]model.User
 }
 
-var ErrEventNotFound = errors.New("event not found")
+var (
+	ErrEventNotFound = errors.New("event not found")
+	ErrUserNotFound  = errors.New("user not found")
+)
 
 func New() *Storage {
 	return &Storage{
@@ -24,7 +27,8 @@ func New() *Storage {
 	}
 }
 
-func (s *Storage) CreateUser(ctx context.Context, user model.User) error {
+// CreateUser - создает нового пользователя и добавляет его в map пользователей.
+func (s *Storage) CreateUser(_ context.Context, user model.User) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -34,15 +38,21 @@ func (s *Storage) CreateUser(ctx context.Context, user model.User) error {
 	return nil
 }
 
-func (s *Storage) DeleteUser(ctx context.Context, userID string) error {
+// DeleteUser - удаляет пользователя по его идентификатору.
+func (s *Storage) DeleteUser(_ context.Context, userID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if _, ok := s.users[userID]; !ok {
+		return ErrUserNotFound
+	}
 
 	delete(s.users, userID)
 	return nil
 }
 
-func (s *Storage) CreateEvent(ctx context.Context, event model.Event) error {
+// CreateEvent - cоздает новое событие и добавляет его в map событий.
+func (s *Storage) CreateEvent(_ context.Context, event model.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -52,15 +62,21 @@ func (s *Storage) CreateEvent(ctx context.Context, event model.Event) error {
 	return nil
 }
 
-func (s *Storage) DeleteEvent(ctx context.Context, eventID string) error {
+// DeleteEvent - удаляет событие по его идентификатору.
+func (s *Storage) DeleteEvent(_ context.Context, eventID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if _, ok := s.events[eventID]; !ok {
+		return ErrEventNotFound
+	}
 
 	delete(s.events, eventID)
 	return nil
 }
 
-func (s *Storage) UpdateEvent(ctx context.Context, event model.Event) error {
+// UpdateEvent - обновляет существующее событие в map событий.
+func (s *Storage) UpdateEvent(_ context.Context, event model.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -72,11 +88,12 @@ func (s *Storage) UpdateEvent(ctx context.Context, event model.Event) error {
 	return nil
 }
 
-func (s *Storage) SelectEvents(ctx context.Context) ([]model.Event, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// SelectEvents - возвращает все события.
+func (s *Storage) SelectEvents(_ context.Context) ([]model.Event, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
-	events := make([]model.Event, 0)
+	events := make([]model.Event, 0, len(s.events))
 	for _, event := range s.events {
 		events = append(events, event)
 	}
@@ -84,11 +101,12 @@ func (s *Storage) SelectEvents(ctx context.Context) ([]model.Event, error) {
 	return events, nil
 }
 
-func (s *Storage) SelectUsers(ctx context.Context) ([]model.User, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// SelectUsers - возвращает всех пользователей.
+func (s *Storage) SelectUsers(_ context.Context) ([]model.User, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
-	users := make([]model.User, 0)
+	users := make([]model.User, 0, len(s.users))
 	for _, user := range s.users {
 		users = append(users, user)
 	}

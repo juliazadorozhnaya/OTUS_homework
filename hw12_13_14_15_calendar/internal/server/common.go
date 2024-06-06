@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 )
 
@@ -16,11 +17,11 @@ type Config interface {
 }
 
 type Logger interface {
-	Fatal(string)
-	Error(string)
-	Warn(string)
-	Info(string)
-	Debug(string)
+	Fatal(string, ...interface{})
+	Error(string, ...interface{})
+	Warn(string, ...interface{})
+	Info(string, ...interface{})
+	Debug(string, ...interface{})
 }
 
 type Application interface {

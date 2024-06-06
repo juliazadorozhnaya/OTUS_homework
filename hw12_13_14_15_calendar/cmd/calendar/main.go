@@ -2,15 +2,10 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/app"
-	_ "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
-	servergrpc "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/grpc"
-	serverhttp "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/storage/memory"
-	sqlstorage "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/storage/sql"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,8 +13,16 @@ import (
 	"sync"
 	"syscall"
 
+	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/app"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/config"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/logger"
+	_ "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
+	servergrpc "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/grpc"
+	serverhttp "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/http"
+	memorystorage "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/storage/memory"
+	sqlstorage "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/storage/sql"
+	"github.com/pressly/goose/v3"
 )
 
 var (
@@ -59,9 +62,19 @@ func main() {
 		application = app.New(storage)
 	case "sql":
 		dbConn := conf.Database
-		connString := fmt.Sprintf("%s://%s:%s@%s:%s/%s",
-			dbConn.Prefix, dbConn.UserName, dbConn.Password, dbConn.Host, dbConn.Port, dbConn.DatabaseName)
-		storage := sqlstorage.New(connString)
+		connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+			dbConn.UserName, dbConn.Password, dbConn.Host, dbConn.Port, dbConn.DatabaseName)
+
+		if err := runMigrations(connString); err != nil {
+			log.Error("failed to run migrations: " + err.Error())
+			return
+		}
+
+		storage, err := sqlstorage.New(connString)
+		if err != nil {
+			log.Error("failed to create SQL storage: " + err.Error())
+			return
+		}
 		application = app.New(storage)
 	default:
 		log.Error(ErrorInvalidStorageType.Error())
@@ -98,16 +111,29 @@ func main() {
 		<-ctx.Done()
 		log.Info("shutting down servers...")
 
-		if err := httpServer.Stop(); err != nil {
+		if err := httpServer.Stop(ctx); err != nil {
 			log.Error("failed to stop HTTP server: " + err.Error())
 		}
 
-		if err := grpcServer.Stop(); err != nil {
-			log.Error("failed to stop gRPC server: " + err.Error())
+		if err := grpcServer.Stop(ctx); err != nil {
+			log.Error("failed to stop GRPC server: " + err.Error())
 		}
 	}()
 
 	log.Info("app is running...")
 	wg.Wait()
 	log.Info("servers closed")
+}
+
+func runMigrations(connString string) error {
+	db, err := sql.Open("pgx", connString)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if err := goose.Up(db, "migrations", goose.WithAllowMissing()); err != nil {
+		return err
+	}
+	return nil
 }

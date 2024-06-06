@@ -2,13 +2,13 @@ package api
 
 import (
 	"context"
-	"fmt"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
-	"google.golang.org/grpc/peer"
 	"time"
+
+	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
 )
 
 type UserServer struct {
+	UnimplementedEventServiceServer
 	app    server.Application
 	logger server.Logger
 }
@@ -20,13 +20,13 @@ func NewUserServer(logger server.Logger, app server.Application) *UserServer {
 	}
 }
 
-func (serv *UserServer) SelectUsers(void *Void, selectUsers UserService_SelectUsersServer) error {
+func (s *UserServer) SelectUsers(_ *Void, selectUsers UserService_SelectUsersServer) error {
 	defer func(start time.Time) {
 		duration := time.Since(start)
-		serv.Log(selectUsers.Context(), start, duration, "SelectUsers")
+		s.logger.Info("SelectUsers", selectUsers.Context(), start, duration)
 	}(time.Now())
 
-	users, err := serv.app.SelectUsers(selectUsers.Context())
+	users, err := s.app.SelectUsers(selectUsers.Context())
 	if err != nil {
 		return err
 	}
@@ -49,36 +49,24 @@ func (serv *UserServer) SelectUsers(void *Void, selectUsers UserService_SelectUs
 	return nil
 }
 
-func (serv *UserServer) CreateUser(ctx context.Context, user *User) (*Void, error) {
+func (s *UserServer) CreateUser(ctx context.Context, user *User) (*Void, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
-		serv.Log(ctx, start, duration, "CreateUser")
+		s.logger.Info("CreateUser", ctx, start, duration)
 	}(time.Now())
 
-	err := serv.app.CreateUser(ctx, user)
+	err := s.app.CreateUser(ctx, user)
 	return &Void{}, err
 }
 
-func (serv *UserServer) DeleteUser(ctx context.Context, user *User) (*Void, error) {
+func (s *UserServer) DeleteUser(ctx context.Context, user *User) (*Void, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
-		serv.Log(ctx, start, duration, "DeleteUser")
+		s.logger.Info("DeleteUser", ctx, start, duration)
 	}(time.Now())
 
-	err := serv.app.DeleteUser(ctx, user.ID)
+	err := s.app.DeleteUser(ctx, user.ID)
 	return &Void{}, err
 }
 
-func (serv *UserServer) mustEmbedUnimplementedUserServiceServer() {}
-
-func (serv *UserServer) Log(ctx context.Context, start time.Time, duration time.Duration, funcName string) {
-	ip := ""
-
-	if p, ok := peer.FromContext(ctx); ok {
-		ip = p.Addr.String()
-	}
-
-	logMessage := fmt.Sprintf("%s [%s] %s %s",
-		ip, start, funcName, duration)
-	serv.logger.Info(logMessage)
-}
+func (s *UserServer) mustEmbedUnimplementedUserServiceServer() {}

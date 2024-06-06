@@ -1,9 +1,9 @@
 package logger
 
 import (
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/config"
 	"testing"
 
+	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/config"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )

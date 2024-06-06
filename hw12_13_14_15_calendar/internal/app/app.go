@@ -2,8 +2,9 @@ package app
 
 import (
 	"context"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 	"sync"
+
+	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 )
 
 type Calendar struct {
@@ -29,6 +30,7 @@ func New(storage Storage) *Calendar {
 	}
 }
 
+// CreateUser - создание пользователя.
 func (calendar *Calendar) CreateUser(ctx context.Context, user model.IUser) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
@@ -44,6 +46,7 @@ func (calendar *Calendar) CreateUser(ctx context.Context, user model.IUser) erro
 	return calendar.storage.CreateUser(ctx, storageUser)
 }
 
+// SelectUsers - получение пользователей.
 func (calendar *Calendar) SelectUsers(ctx context.Context) ([]model.IUser, error) {
 	calendar.mutex.RLock()
 	defer calendar.mutex.RUnlock()
@@ -63,6 +66,7 @@ func (calendar *Calendar) SelectUsers(ctx context.Context) ([]model.IUser, error
 	return users, nil
 }
 
+// DeleteUser - удаление пользователя.
 func (calendar *Calendar) DeleteUser(ctx context.Context, id string) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
@@ -70,6 +74,7 @@ func (calendar *Calendar) DeleteUser(ctx context.Context, id string) error {
 	return calendar.storage.DeleteUser(ctx, id)
 }
 
+// CreateEvent - создание события.
 func (calendar *Calendar) CreateEvent(ctx context.Context, event model.IEvent) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
@@ -87,6 +92,7 @@ func (calendar *Calendar) CreateEvent(ctx context.Context, event model.IEvent) e
 	return calendar.storage.CreateEvent(ctx, storageEvent)
 }
 
+// UpdateEvent - обновление события.
 func (calendar *Calendar) UpdateEvent(ctx context.Context, event model.IEvent) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
@@ -104,6 +110,7 @@ func (calendar *Calendar) UpdateEvent(ctx context.Context, event model.IEvent) e
 	return calendar.storage.UpdateEvent(ctx, storageEvent)
 }
 
+// DeleteEvent - удаление события.
 func (calendar *Calendar) DeleteEvent(ctx context.Context, id string) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
@@ -111,6 +118,7 @@ func (calendar *Calendar) DeleteEvent(ctx context.Context, id string) error {
 	return calendar.storage.DeleteEvent(ctx, id)
 }
 
+// SelectEvents - получение событий.
 func (calendar *Calendar) SelectEvents(ctx context.Context) ([]model.IEvent, error) {
 	calendar.mutex.RLock()
 	defer calendar.mutex.RUnlock()

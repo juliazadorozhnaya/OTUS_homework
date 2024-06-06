@@ -21,9 +21,6 @@ lint: install-lint-deps
 generate:
 	protoc --plugin=protoc-gen-go=/Users/yu.zadorozhnaya/go/bin/protoc-gen-go --go_out=internal/server/grpc --plugin=protoc-gen-go-grpc=/Users/yu.zadorozhnaya/go/bin/protoc-gen-go-grpc --go-grpc_out=internal/server/grpc internal/server/grpc/EventService.proto
 
-postgres:
-	docker run --name postgresdb --env POSTGRES_PASSWORD="1234512345" --publish "5436:5432" --detach --rm postgres
-
 build:
 	go build -v -o $(BIN_CALENDAR) -ldflags "$(LDFLAGS)" $(MAIN_CALENDAR)
 
@@ -47,13 +44,7 @@ version: build-calendar
 
 migrate-up:
 	docker exec -it postgresdb createdb --username postgres calendardb
-	migrate -path migrations -database "postgresql://postgres:1234512345@localhost:5436/postgres?sslmode=disable" -verbose up
-
-up:
-	cd deployments && docker-compose -f docker-compose.yaml build && docker-compose -f docker-compose.yaml up
-
-down:
-	cd deployments && docker-compose down
+	migrate -path migrations -database "postgres://postgres:1234512345@localhost:5432/calendardb?sslmode=disable" -verbose up
 
 .PHONY: up down \
 		generate rabbitmq postgre \

@@ -2,290 +2,198 @@ package sqlstorage
 
 import (
 	"context"
-	pgx "github.com/jackc/pgx/v4"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 )
 
 type Storage struct {
-	connString string
+	pool *pgxpool.Pool
 }
 
-func New(connString string) *Storage {
-	return &Storage{
-		connString: connString,
+func New(connString string) (*Storage, error) {
+	pool, err := pgxpool.Connect(context.Background(), connString)
+	if err != nil {
+		return nil, err
 	}
+
+	return &Storage{
+		pool: pool,
+	}, nil
 }
 
+// SelectUsers - возвращает всех пользователей из базы данных.
 func (s *Storage) SelectUsers(ctx context.Context) (users []model.User, err error) {
 	users = make([]model.User, 0)
-	sql := `SELECT id, firstname, lastname, email, age FROM users;`
+	sql := `SELECT id, firstname, lastname, email, age FROM calendar.users;`
 
-	conn, err := pgx.Connect(ctx, s.connString)
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return users, err
 	}
-
 	defer func() {
-		if closeErr := conn.Close(ctx); closeErr != nil {
-			err = closeErr
-		}
-	}()
-
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return users, err
-	}
-
-	defer func() {
-		if err == nil {
-			err = tx.Commit(ctx)
+		if err != nil {
+			tx.Rollback(ctx)
 		} else {
-			if rollbackErr := tx.Rollback(ctx); err != nil {
-				err = rollbackErr
-			}
+			tx.Commit(ctx)
 		}
 	}()
 
-	rows, err := conn.Query(ctx, sql)
+	rows, err := tx.Query(ctx, sql)
 	if err != nil {
 		return users, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var user model.User
-
 		err = rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.Age)
 		if err != nil {
 			return users, err
 		}
-
 		users = append(users, user)
 	}
 
-	return users, nil
+	return users, rows.Err()
 }
 
+// CreateUser - вставляет нового пользователя в базу данных.
 func (s *Storage) CreateUser(ctx context.Context, user model.User) error {
-	sql := `INSERT INTO users (firstname, lastname, email, age) VALUES ($1, $2, $3, $4);`
+	sql := `INSERT INTO calendar.users (firstname, lastname, email, age) VALUES ($1, $2, $3, $4);`
 
-	conn, err := pgx.Connect(ctx, s.connString)
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-
 	defer func() {
-		if closeErr := conn.Close(ctx); closeErr != nil {
-			err = closeErr
-		}
-	}()
-
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err == nil {
-			err = tx.Commit(ctx)
+		if err != nil {
+			tx.Rollback(ctx)
 		} else {
-			if rollbackErr := tx.Rollback(ctx); err != nil {
-				err = rollbackErr
-			}
+			tx.Commit(ctx)
 		}
 	}()
 
-	_, err = conn.Exec(ctx, sql, user.FirstName, user.LastName, user.Email, user.Age)
+	_, err = tx.Exec(ctx, sql, user.FirstName, user.LastName, user.Email, user.Age)
 	return err
 }
 
+// DeleteUser - удаляет пользователя по его идентификатору.
 func (s *Storage) DeleteUser(ctx context.Context, userID string) error {
-	sql := `DELETE FROM users WHERE users.id = $1;`
+	sql := `DELETE FROM calendar.users WHERE id = $1;`
 
-	conn, err := pgx.Connect(ctx, s.connString)
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-
 	defer func() {
-		if closeErr := conn.Close(ctx); closeErr != nil {
-			err = closeErr
-		}
-	}()
-
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err == nil {
-			err = tx.Commit(ctx)
+		if err != nil {
+			tx.Rollback(ctx)
 		} else {
-			if rollbackErr := tx.Rollback(ctx); err != nil {
-				err = rollbackErr
-			}
+			tx.Commit(ctx)
 		}
 	}()
 
-	_, err = conn.Exec(ctx, sql, userID)
+	_, err = tx.Exec(ctx, sql, userID)
 	return err
 }
 
-func (s *Storage) CreateEvent(ctx context.Context, event model.Event) (err error) {
-	sql := `INSERT INTO 
-				events (title, description, beginning, finish, notification, userid) 
-			VALUES 
-				($1, $2, $3, $4, $5, $6);`
+// CreateEvent - вставляет новое событие в базу данных.
+func (s *Storage) CreateEvent(ctx context.Context, event model.Event) error {
+	sql := `INSERT INTO calendar.events (title, description, beginning, finish, notification, userid) 
+			VALUES ($1, $2, $3, $4, $5, $6);`
 
-	conn, err := pgx.Connect(ctx, s.connString)
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-
 	defer func() {
-		if closeErr := conn.Close(ctx); closeErr != nil {
-			err = closeErr
-		}
-	}()
-
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err == nil {
-			err = tx.Commit(ctx)
+		if err != nil {
+			tx.Rollback(ctx)
 		} else {
-			if rollbackErr := tx.Rollback(ctx); err != nil {
-				err = rollbackErr
-			}
+			tx.Commit(ctx)
 		}
 	}()
 
-	_, err = conn.Exec(ctx, sql,
-		event.Title, event.Description, event.Beginning, event.Finish, event.Notification, event.UserID)
+	_, err = tx.Exec(ctx, sql, event.Title, event.Description, event.Beginning, event.Finish,
+		event.Notification, event.UserID)
 	return err
 }
 
+// DeleteEvent - удаляет событие по его идентификатору.
 func (s *Storage) DeleteEvent(ctx context.Context, eventID string) error {
-	sql := `DELETE FROM events WHERE events.id = $1;`
+	sql := `DELETE FROM calendar.events WHERE id = $1;`
 
-	conn, err := pgx.Connect(ctx, s.connString)
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-
 	defer func() {
-		if closeErr := conn.Close(ctx); closeErr != nil {
-			err = closeErr
-		}
-	}()
-
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err == nil {
-			err = tx.Commit(ctx)
+		if err != nil {
+			tx.Rollback(ctx)
 		} else {
-			if rollbackErr := tx.Rollback(ctx); err != nil {
-				err = rollbackErr
-			}
+			tx.Commit(ctx)
 		}
 	}()
 
-	_, err = conn.Exec(ctx, sql, eventID)
+	_, err = tx.Exec(ctx, sql, eventID)
 	return err
 }
 
-func (s *Storage) UpdateEvent(ctx context.Context, event model.Event) (err error) {
-	sql := `UPDATE
-				events
-			SET
-				title = $2, description = $3, beginning = $4, finish = $5, notification = $6, userid = $7
-			WHERE
-				id = $1;`
+// UpdateEvent - обновляет существующее событие в базе данных.
+func (s *Storage) UpdateEvent(ctx context.Context, event model.Event) error {
+	sql := `UPDATE calendar.events
+			SET title = $2, description = $3, beginning = $4, finish = $5, notification = $6, userid = $7
+			WHERE id = $1;`
 
-	conn, err := pgx.Connect(ctx, s.connString)
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-
 	defer func() {
-		if closeErr := conn.Close(ctx); closeErr != nil {
-			err = closeErr
-		}
-	}()
-
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err == nil {
-			err = tx.Commit(ctx)
+		if err != nil {
+			tx.Rollback(ctx)
 		} else {
-			if rollbackErr := tx.Rollback(ctx); err != nil {
-				err = rollbackErr
-			}
+			tx.Commit(ctx)
 		}
 	}()
 
-	_, err = conn.Exec(ctx, sql,
-		event.ID, event.Title, event.Description, event.Beginning, event.Finish, event.Notification, event.UserID)
+	_, err = tx.Exec(ctx, sql, event.ID, event.Title, event.Description, event.Beginning, event.Finish,
+		event.Notification, event.UserID)
 	return err
 }
 
+// SelectEvents - возвращает все события из базы данных.
 func (s *Storage) SelectEvents(ctx context.Context) (events []model.Event, err error) {
 	events = make([]model.Event, 0)
-	sql := `SELECT id, title, description, beginning, finish, notification, userid FROM events;`
+	sql := `SELECT id, title, description, beginning, finish, notification, userid FROM calendar.events;`
 
-	conn, err := pgx.Connect(ctx, s.connString)
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return events, err
 	}
-
 	defer func() {
-		if closeErr := conn.Close(ctx); closeErr != nil {
-			err = closeErr
-		}
-	}()
-
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return events, err
-	}
-
-	defer func() {
-		if err == nil {
-			err = tx.Commit(ctx)
+		if err != nil {
+			tx.Rollback(ctx)
 		} else {
-			if rollbackErr := tx.Rollback(ctx); err != nil {
-				err = rollbackErr
-			}
+			tx.Commit(ctx)
 		}
 	}()
 
-	rows, err := conn.Query(ctx, sql)
+	rows, err := tx.Query(ctx, sql)
 	if err != nil {
 		return events, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var event model.Event
-
-		err = rows.Scan(&event.ID, &event.Title, &event.Description,
-			&event.Beginning, &event.Finish, &event.Notification, &event.UserID)
+		err = rows.Scan(&event.ID, &event.Title, &event.Description, &event.Beginning, &event.Finish,
+			&event.Notification, &event.UserID)
 		if err != nil {
 			return events, err
 		}
-
 		events = append(events, event)
 	}
 
-	return events, nil
+	return events, rows.Err()
 }

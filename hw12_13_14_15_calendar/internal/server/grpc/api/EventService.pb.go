@@ -7,11 +7,12 @@
 package api
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -298,13 +299,16 @@ func file_internal_server_grpc_EventService_proto_rawDescGZIP() []byte {
 	return file_internal_server_grpc_EventService_proto_rawDescData
 }
 
-var file_internal_server_grpc_EventService_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_internal_server_grpc_EventService_proto_goTypes = []interface{}{
-	(*Void)(nil),                  // 0: Void
-	(*User)(nil),                  // 1: User
-	(*Event)(nil),                 // 2: Event
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
-}
+var (
+	file_internal_server_grpc_EventService_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+	file_internal_server_grpc_EventService_proto_goTypes  = []interface{}{
+		(*Void)(nil),                  // 0: Void
+		(*User)(nil),                  // 1: User
+		(*Event)(nil),                 // 2: Event
+		(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	}
+)
+
 var file_internal_server_grpc_EventService_proto_depIdxs = []int32{
 	3,  // 0: Event.BeginningT:type_name -> google.protobuf.Timestamp
 	3,  // 1: Event.FinishT:type_name -> google.protobuf.Timestamp

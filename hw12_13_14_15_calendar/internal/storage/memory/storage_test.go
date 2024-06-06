@@ -2,10 +2,10 @@ package memorystorage
 
 import (
 	"context"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 	"testing"
 	"time"
 
+	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,8 +68,8 @@ func TestStorage(t *testing.T) {
 				Title:        "Просмотр фильма",
 				Description:  "Человек паук",
 				Beginning:    time.Date(2024, time.May, 22, 18, 0, 0, 0, time.UTC),
-				Finish:       time.Date(2024, time.May, 23, 05, 0, 0, 0, time.UTC),
-				Notification: time.Date(2024, time.May, 21, 03, 0, 0, 0, time.UTC),
+				Finish:       time.Date(2024, time.May, 23, 0o5, 0, 0, 0, time.UTC),
+				Notification: time.Date(2024, time.May, 21, 0o3, 0, 0, 0, time.UTC),
 				UserID:       user.ID,
 			},
 			{

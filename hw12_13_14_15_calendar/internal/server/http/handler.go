@@ -3,10 +3,12 @@ package serverhttp
 import (
 	"context"
 	"encoding/json"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
 	"io"
 	"net/http"
+	"strings"
+
+	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
+	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
 )
 
 type handler struct {
@@ -14,6 +16,7 @@ type handler struct {
 	app    server.Application
 }
 
+// newHandler создает новый HTTP хендлер с логгером и приложением.
 func newHandler(logger server.Logger, app server.Application) *handler {
 	return &handler{
 		logger: logger,
@@ -21,128 +24,150 @@ func newHandler(logger server.Logger, app server.Application) *handler {
 	}
 }
 
+// createUser обрабатывает запрос на создание нового пользователя.
 func (h *handler) createUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user, err := readUserFromBody(r)
 	if err != nil {
-		h.logger.Error(err.Error())
+		h.logger.Error("createUser: " + err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	h.logger.Debug("Attempting to create user: " + user.Email)
 	if err := h.app.CreateUser(ctx, user); err != nil {
-		h.logger.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.logger.Error("createUser: " + err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	h.logger.Info("User created: " + user.Email)
 	w.WriteHeader(http.StatusOK)
 }
 
+// selectUsers обрабатывает запрос на получение списка всех пользователей.
 func (h *handler) selectUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	h.logger.Debug("Selecting users")
 	marshal, err := selectAsJSON(ctx, func(ctx context.Context) (interface{}, error) {
 		return h.app.SelectUsers(ctx)
 	})
 	if err != nil {
-		h.logger.Error(err.Error())
+		h.logger.Error("selectUsers: " + err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if err := sendData(w, marshal); err != nil {
-		h.logger.Error(err.Error())
+		h.logger.Error("selectUsers: " + err.Error())
 	}
+	h.logger.Info("Users selected")
 }
 
+// deleteUser обрабатывает запрос на удаление пользователя по его ID.
 func (h *handler) deleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user, err := readUserFromBody(r)
-	if err != nil {
-		h.logger.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	userID := getIDFromPath(r.URL.Path)
+	if userID == "" {
+		h.logger.Error("deleteUser: missing user ID in path")
+		http.Error(w, "missing user ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.app.DeleteUser(ctx, user.GetID()); err != nil {
-		h.logger.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	h.logger.Debug("Attempting to delete user: " + userID)
+	if err := h.app.DeleteUser(ctx, userID); err != nil {
+		h.logger.Error("deleteUser: " + err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	h.logger.Info("User deleted: " + userID)
 	w.WriteHeader(http.StatusOK)
 }
 
+// createEvent обрабатывает запрос на создание нового события.
 func (h *handler) createEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	event, err := readEventFromBody(r)
 	if err != nil {
-		h.logger.Error(err.Error())
+		h.logger.Error("createEvent: " + err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	h.logger.Debug("Attempting to create event: " + event.Title)
 	if err := h.app.CreateEvent(ctx, event); err != nil {
-		h.logger.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.logger.Error("createEvent: " + err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	h.logger.Info("Event created: " + event.Title)
 	w.WriteHeader(http.StatusOK)
 }
 
+// selectEvents обрабатывает запрос на получение списка всех событий.
 func (h *handler) selectEvents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	h.logger.Debug("Selecting events")
 	marshal, err := selectAsJSON(ctx, func(ctx context.Context) (interface{}, error) {
 		return h.app.SelectEvents(ctx)
 	})
 	if err != nil {
-		h.logger.Error(err.Error())
+		h.logger.Error("selectEvents: " + err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if err := sendData(w, marshal); err != nil {
-		h.logger.Error(err.Error())
+		h.logger.Error("selectEvents: " + err.Error())
 	}
+	h.logger.Info("Events selected")
 }
 
+// updateEvent обрабатывает запрос на обновление существующего события.
 func (h *handler) updateEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	event, err := readEventFromBody(r)
 	if err != nil {
-		h.logger.Error(err.Error())
+		h.logger.Error("updateEvent: " + err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	h.logger.Debug("Attempting to update event: " + event.ID)
 	if err := h.app.UpdateEvent(ctx, event); err != nil {
-		h.logger.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.logger.Error("updateEvent: " + err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	h.logger.Info("Event updated: " + event.ID)
 	w.WriteHeader(http.StatusOK)
 }
 
+// deleteEvent обрабатывает запрос на удаление события по его ID.
 func (h *handler) deleteEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	event, err := readEventFromBody(r)
-	if err != nil {
-		h.logger.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	eventID := getIDFromPath(r.URL.Path)
+	if eventID == "" {
+		h.logger.Error("deleteEvent: missing event ID in path")
+		http.Error(w, "missing event ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.app.DeleteEvent(ctx, event.GetID()); err != nil {
-		h.logger.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	h.logger.Debug("Attempting to delete event: " + eventID)
+	if err := h.app.DeleteEvent(ctx, eventID); err != nil {
+		h.logger.Error("deleteEvent: " + err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	h.logger.Info("Event deleted: " + eventID)
 	w.WriteHeader(http.StatusOK)
 }
 
+// readUserFromBody читает и разбирает тело запроса в структуру User.
 func readUserFromBody(r *http.Request) (*model.User, error) {
 	defer r.Body.Close()
 	user := new(model.User)
@@ -156,6 +181,7 @@ func readUserFromBody(r *http.Request) (*model.User, error) {
 	return user, nil
 }
 
+// readEventFromBody читает и разбирает тело запроса в структуру Event.
 func readEventFromBody(r *http.Request) (*model.Event, error) {
 	defer r.Body.Close()
 	event := new(model.Event)
@@ -169,17 +195,28 @@ func readEventFromBody(r *http.Request) (*model.Event, error) {
 	return event, nil
 }
 
+// selectAsJSON выполняет функцию селектора и сериализует результат в JSON.
 func selectAsJSON(ctx context.Context, sel func(context.Context) (interface{}, error)) ([]byte, error) {
-	events, err := sel(ctx)
+	data, err := sel(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(events)
+	return json.Marshal(data)
 }
 
+// sendData отправляет данные в формате JSON в HTTP-ответ.
 func sendData(w http.ResponseWriter, data []byte) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write(data)
 	return err
+}
+
+// getIDFromPath извлекает ID из пути запроса.
+func getIDFromPath(path string) string {
+	parts := strings.Split(path, "/")
+	if len(parts) < 3 {
+		return ""
+	}
+	return parts[len(parts)-1]
 }

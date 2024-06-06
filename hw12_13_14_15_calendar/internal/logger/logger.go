@@ -44,22 +44,22 @@ func getLevel(level string) zerolog.Level {
 	}
 }
 
-func (l Logger) Fatal(msg string) {
-	log.Fatal().Msg(msg)
+func (l Logger) Fatal(msg string, v ...interface{}) {
+	log.Fatal().Msgf(msg, v...)
 }
 
-func (l Logger) Error(msg string) {
-	log.Error().Msg(msg)
+func (l Logger) Error(msg string, v ...interface{}) {
+	log.Error().Msgf(msg, v...)
 }
 
-func (l Logger) Warn(msg string) {
-	log.Warn().Msg(msg)
+func (l Logger) Warn(msg string, v ...interface{}) {
+	log.Warn().Msgf(msg, v...)
 }
 
-func (l Logger) Info(msg string) {
-	log.Info().Msg(msg)
+func (l Logger) Info(msg string, v ...interface{}) {
+	log.Info().Msgf(msg, v...)
 }
 
-func (l Logger) Debug(msg string) {
-	log.Debug().Msg(msg)
+func (l Logger) Debug(msg string, v ...interface{}) {
+	log.Debug().Msgf(msg, v...)
 }

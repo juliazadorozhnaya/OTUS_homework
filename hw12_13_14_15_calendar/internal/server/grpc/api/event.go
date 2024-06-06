@@ -2,34 +2,33 @@ package api
 
 import (
 	"context"
-	"fmt"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
-	"google.golang.org/grpc/peer"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"time"
+
+	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type EventServer struct {
-	app    server.Application
+	UnimplementedEventServiceServer
 	logger server.Logger
+	app    server.Application
 }
 
 func NewEventServer(logger server.Logger, app server.Application) *EventServer {
-	return &EventServer{
-		app:    app,
-		logger: logger,
-	}
+	return &EventServer{logger: logger, app: app}
 }
 
-func (serv *EventServer) SelectEvents(void *Void, selectEvents EventService_SelectEventsServer) error {
+func (s *EventServer) SelectEvents(_ *Void, stream EventService_SelectEventsServer) error {
 	defer func(start time.Time) {
 		duration := time.Since(start)
-		serv.Log(selectEvents.Context(), start, duration, "SelectEvents")
+		s.logger.Info("SelectEvents", stream.Context(), start, duration)
 	}(time.Now())
 
-	events, err := serv.app.SelectEvents(selectEvents.Context())
+	events, err := s.app.SelectEvents(stream.Context())
 	if err != nil {
-		return err
+		return status.Errorf(codes.Internal, "failed to select events: %v", err)
 	}
 
 	for _, event := range events {
@@ -43,46 +42,50 @@ func (serv *EventServer) SelectEvents(void *Void, selectEvents EventService_Sele
 			NotificationT: timestamppb.New(event.GetNotification()),
 		}
 
-		err := selectEvents.Send(&e)
+		err := stream.Send(&e)
 		if err != nil {
-			return err
+			return status.Errorf(codes.Internal, "failed to send event: %v", err)
 		}
 	}
 
 	return nil
 }
 
-func (serv *EventServer) CreateEvent(ctx context.Context, event *Event) (*Void, error) {
+func (s *EventServer) CreateEvent(ctx context.Context, event *Event) (*Void, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
-		serv.Log(ctx, start, duration, "CreateEvent")
+		s.logger.Info("CreateEvent", ctx, start, duration)
 	}(time.Now())
 
-	err := serv.app.CreateEvent(ctx, event)
+	err := s.app.CreateEvent(ctx, event)
 	return &Void{}, err
 }
 
-func (serv *EventServer) UpdateEvent(ctx context.Context, event *Event) (*Void, error) {
+func (s *EventServer) UpdateEvent(ctx context.Context, event *Event) (*Void, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
-		serv.Log(ctx, start, duration, "UpdateEvent")
+		s.logger.Info("UpdateEvent", ctx, start, duration)
 	}(time.Now())
 
-	err := serv.app.UpdateEvent(ctx, event)
-	return &Void{}, err
+	if err := s.app.UpdateEvent(ctx, event); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update event: %v", err)
+	}
+	return &Void{}, nil
 }
 
-func (serv *EventServer) DeleteEvent(ctx context.Context, event *Event) (*Void, error) {
+func (s *EventServer) DeleteEvent(ctx context.Context, event *Event) (*Void, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
-		serv.Log(ctx, start, duration, "DeleteEvent")
+		s.logger.Info("DeleteEvent", ctx, start, duration)
 	}(time.Now())
 
-	err := serv.app.DeleteEvent(ctx, event.ID)
-	return &Void{}, err
+	if err := s.app.DeleteEvent(ctx, event.ID); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to delete event: %v", err)
+	}
+	return &Void{}, nil
 }
 
-func (serv *EventServer) mustEmbedUnimplementedEventServiceServer() {}
+func (s *EventServer) mustEmbedUnimplementedEventServiceServer() {}
 
 func (x *Event) GetBeginning() time.Time {
 	return x.BeginningT.AsTime()
@@ -94,16 +97,4 @@ func (x *Event) GetFinish() time.Time {
 
 func (x *Event) GetNotification() time.Time {
 	return x.NotificationT.AsTime()
-}
-
-func (serv *EventServer) Log(ctx context.Context, start time.Time, duration time.Duration, funcName string) {
-	ip := ""
-
-	if p, ok := peer.FromContext(ctx); ok {
-		ip = p.Addr.String()
-	}
-
-	logMessage := fmt.Sprintf("%s [%s] %s %s",
-		ip, start, funcName, duration)
-	serv.logger.Info(logMessage)
 }
