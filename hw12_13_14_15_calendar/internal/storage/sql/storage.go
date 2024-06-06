@@ -2,9 +2,7 @@ package sqlstorage
 
 import (
 	"context"
-	"fmt"
 	pgx "github.com/jackc/pgx/v4"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/config"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 )
 
@@ -12,10 +10,7 @@ type Storage struct {
 	connString string
 }
 
-func New(config config.DatabaseConfig) *Storage {
-	connString := fmt.Sprintf("%s://%s:%s@%s:%s/%s",
-		config.Prefix, config.UserName, config.Password, config.Host, config.Port, config.DatabaseName)
-
+func New(connString string) *Storage {
 	return &Storage{
 		connString: connString,
 	}

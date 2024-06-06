@@ -12,14 +12,14 @@ type Calendar struct {
 }
 
 type Storage interface {
-	CreateUser(context.Context, model.User) error
+	CreateUser(ctx context.Context, User model.User) error
 	SelectUsers(ctx context.Context) ([]model.User, error)
-	DeleteUser(context.Context, string) error
+	DeleteUser(ctx context.Context, id string) error
 
-	CreateEvent(context.Context, model.Event) error
-	SelectEvents(context.Context) ([]model.Event, error)
-	UpdateEvent(context.Context, model.Event) error
-	DeleteEvent(context.Context, string) error
+	CreateEvent(ctx context.Context, Event model.Event) error
+	SelectEvents(ctx context.Context) ([]model.Event, error)
+	UpdateEvent(ctx context.Context, Event model.Event) error
+	DeleteEvent(ctx context.Context, id string) error
 }
 
 func New(storage Storage) *Calendar {
@@ -29,26 +29,26 @@ func New(storage Storage) *Calendar {
 	}
 }
 
-func (calendar *Calendar) CreateUser(ctx context.Context, User model.User) error {
+func (calendar *Calendar) CreateUser(ctx context.Context, user model.IUser) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
 
-	user := model.User{
-		ID:        User.ID,
-		FirstName: User.FirstName,
-		LastName:  User.LastName,
-		Email:     User.Email,
-		Age:       User.Age,
+	storageUser := model.User{
+		ID:        user.GetID(),
+		FirstName: user.GetFirstName(),
+		LastName:  user.GetLastName(),
+		Email:     user.GetEmail(),
+		Age:       user.GetAge(),
 	}
 
-	return calendar.storage.CreateUser(ctx, user)
+	return calendar.storage.CreateUser(ctx, storageUser)
 }
 
-func (calendar *Calendar) SelectUsers(ctx context.Context) ([]model.User, error) {
+func (calendar *Calendar) SelectUsers(ctx context.Context) ([]model.IUser, error) {
 	calendar.mutex.RLock()
 	defer calendar.mutex.RUnlock()
 
-	users := make([]model.User, 0)
+	users := make([]model.IUser, 0)
 
 	storageUsers, err := calendar.storage.SelectUsers(ctx)
 	if err != nil {
@@ -56,13 +56,8 @@ func (calendar *Calendar) SelectUsers(ctx context.Context) ([]model.User, error)
 	}
 
 	for _, storageUser := range storageUsers {
-		users = append(users, model.User{
-			ID:        storageUser.ID,
-			FirstName: storageUser.FirstName,
-			LastName:  storageUser.LastName,
-			Email:     storageUser.Email,
-			Age:       storageUser.Age,
-		})
+		user := storageUser
+		users = append(users, &user)
 	}
 
 	return users, nil
@@ -75,38 +70,38 @@ func (calendar *Calendar) DeleteUser(ctx context.Context, id string) error {
 	return calendar.storage.DeleteUser(ctx, id)
 }
 
-func (calendar *Calendar) CreateEvent(ctx context.Context, Event model.Event) error {
+func (calendar *Calendar) CreateEvent(ctx context.Context, event model.IEvent) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
 
-	event := model.Event{
-		ID:           Event.ID,
-		Title:        Event.Title,
-		Description:  Event.Description,
-		UserID:       Event.UserID,
-		Beginning:    Event.Beginning,
-		Finish:       Event.Finish,
-		Notification: Event.Notification,
+	storageEvent := model.Event{
+		ID:           event.GetID(),
+		Title:        event.GetTitle(),
+		Description:  event.GetDescription(),
+		UserID:       event.GetUserID(),
+		Beginning:    event.GetBeginning(),
+		Finish:       event.GetFinish(),
+		Notification: event.GetNotification(),
 	}
 
-	return calendar.storage.CreateEvent(ctx, event)
+	return calendar.storage.CreateEvent(ctx, storageEvent)
 }
 
-func (calendar *Calendar) UpdateEvent(ctx context.Context, Event model.Event) error {
+func (calendar *Calendar) UpdateEvent(ctx context.Context, event model.IEvent) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
 
-	event := model.Event{
-		ID:           Event.ID,
-		Title:        Event.Title,
-		Description:  Event.Description,
-		UserID:       Event.UserID,
-		Beginning:    Event.Beginning,
-		Finish:       Event.Finish,
-		Notification: Event.Notification,
+	storageEvent := model.Event{
+		ID:           event.GetID(),
+		Title:        event.GetTitle(),
+		Description:  event.GetDescription(),
+		UserID:       event.GetUserID(),
+		Beginning:    event.GetBeginning(),
+		Finish:       event.GetFinish(),
+		Notification: event.GetNotification(),
 	}
 
-	return calendar.storage.UpdateEvent(ctx, event)
+	return calendar.storage.UpdateEvent(ctx, storageEvent)
 }
 
 func (calendar *Calendar) DeleteEvent(ctx context.Context, id string) error {
@@ -116,11 +111,11 @@ func (calendar *Calendar) DeleteEvent(ctx context.Context, id string) error {
 	return calendar.storage.DeleteEvent(ctx, id)
 }
 
-func (calendar *Calendar) SelectEvents(ctx context.Context) ([]model.Event, error) {
+func (calendar *Calendar) SelectEvents(ctx context.Context) ([]model.IEvent, error) {
 	calendar.mutex.RLock()
 	defer calendar.mutex.RUnlock()
 
-	events := make([]model.Event, 0)
+	events := make([]model.IEvent, 0)
 
 	storageEvents, err := calendar.storage.SelectEvents(ctx)
 	if err != nil {
@@ -128,14 +123,8 @@ func (calendar *Calendar) SelectEvents(ctx context.Context) ([]model.Event, erro
 	}
 
 	for _, storageEvent := range storageEvents {
-		events = append(events, model.Event{
-			ID:           storageEvent.ID,
-			Title:        storageEvent.Title,
-			Description:  storageEvent.Description,
-			Beginning:    storageEvent.Beginning,
-			Notification: storageEvent.Notification,
-			UserID:       storageEvent.UserID,
-		})
+		event := storageEvent
+		events = append(events, &event)
 	}
 
 	return events, nil

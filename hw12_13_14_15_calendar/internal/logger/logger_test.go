@@ -10,17 +10,17 @@ import (
 
 func TestLogger(t *testing.T) {
 	t.Run("base case", func(t *testing.T) {
-		New(config.LoggerConfig{
+		New(&config.LoggerConfig{
 			Level: "info",
 		})
 		require.Equal(t, zerolog.InfoLevel, zerolog.GlobalLevel())
 
-		New(config.LoggerConfig{
+		New(&config.LoggerConfig{
 			Level: "error",
 		})
 		require.Equal(t, zerolog.ErrorLevel, zerolog.GlobalLevel())
 
-		New(config.LoggerConfig{
+		New(&config.LoggerConfig{
 			Level: "warn",
 		})
 		require.Equal(t, zerolog.WarnLevel, zerolog.GlobalLevel())

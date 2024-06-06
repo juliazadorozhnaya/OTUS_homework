@@ -1,25 +1,26 @@
-package server
+package serverhttp
 
 import (
 	"fmt"
+	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
 	"net"
 	"net/http"
 	"time"
 )
 
-type Middleware struct {
-	logger  Logger
+type middleware struct {
+	logger  server.Logger
 	Handler http.Handler
 }
 
-func NewMiddleware(logger Logger, httpHandler http.Handler) *Middleware {
-	return &Middleware{
+func newMiddleware(logger server.Logger, httpHandler http.Handler) *middleware {
+	return &middleware{
 		logger:  logger,
 		Handler: httpHandler,
 	}
 }
 
-func (m *Middleware) Logging() *Middleware {
+func (m *middleware) logging() *middleware {
 	curHandler := m.Handler
 
 	m.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
