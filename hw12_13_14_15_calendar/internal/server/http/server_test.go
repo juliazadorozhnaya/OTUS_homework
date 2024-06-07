@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/app"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/config"
@@ -123,7 +124,9 @@ func TestServer(t *testing.T) {
 	address := "http://" + net.JoinHostPort(host, port)
 	ctx := context.Background()
 
+	time.Sleep(1 * time.Second)
 	userCase(ctx, t, &mutex, address)
+	time.Sleep(1 * time.Second)
 	eventCase(ctx, t, &mutex, address)
 
 	err := serv.Stop(ctx)
