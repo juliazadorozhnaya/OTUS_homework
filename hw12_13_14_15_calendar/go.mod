@@ -1,4 +1,4 @@
-module github.com/juliazadorozhnaya/hw12_13_14_15_calendar
+module github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar
 
 go 1.19
 
