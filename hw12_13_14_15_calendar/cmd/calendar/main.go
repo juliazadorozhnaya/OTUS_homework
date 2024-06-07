@@ -14,14 +14,14 @@ import (
 	"syscall"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/app"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/config"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/logger"
-	_ "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
-	servergrpc "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/grpc"
-	serverhttp "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/storage/memory"
-	sqlstorage "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/storage/sql"
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/app"
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/config"
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/logger"
+	_ "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server"
+	servergrpc "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server/grpc"
+	serverhttp "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server/http"
+	memorystorage "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/storage/memory"
+	sqlstorage "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/storage/sql"
 	"github.com/pressly/goose/v3"
 )
 

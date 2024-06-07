@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/model"
 )
 
 type Storage struct {

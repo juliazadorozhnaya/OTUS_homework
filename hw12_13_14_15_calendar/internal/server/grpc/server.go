@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server/grpc/api"
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server"
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server/grpc/api"
 	"google.golang.org/grpc"
 )
 
