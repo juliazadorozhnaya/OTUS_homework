@@ -7,13 +7,18 @@ import (
 )
 
 type Config struct {
-	Logger   LoggerConfig
-	Database DatabaseConfig
-	Server   ServerConfig
+	Logger     *LoggerConfig
+	Database   *DatabaseConfig
+	HTTPServer *ServerConfig
+	GRPCServer *ServerConfig
 }
 
 type LoggerConfig struct {
 	Level string
+}
+
+func (config *LoggerConfig) GetLevel() string {
+	return config.Level
 }
 
 type DatabaseConfig struct {
@@ -38,10 +43,10 @@ func New(configPath string) (Config, error) {
 	}
 
 	return Config{
-		Logger: LoggerConfig{
+		Logger: &LoggerConfig{
 			Level: viper.GetString("logger.level"),
 		},
-		Database: DatabaseConfig{
+		Database: &DatabaseConfig{
 			Prefix:       viper.GetString("database.Prefix"),
 			DatabaseName: viper.GetString("database.DatabaseName"),
 			Host:         viper.GetString("database.Host"),
@@ -49,9 +54,21 @@ func New(configPath string) (Config, error) {
 			UserName:     viper.GetString("database.UserName"),
 			Password:     viper.GetString("database.Password"),
 		},
-		Server: ServerConfig{
-			Host: viper.GetString("api.Host"),
-			Port: viper.GetString("api.Port"),
+		HTTPServer: &ServerConfig{
+			Host: viper.GetString("http_server.Host"),
+			Port: viper.GetString("http_server.Port"),
+		},
+		GRPCServer: &ServerConfig{
+			Host: viper.GetString("grpc_server.Host"),
+			Port: viper.GetString("grpc_server.Port"),
 		},
 	}, nil
+}
+
+func (s *ServerConfig) GetPort() string {
+	return s.Port
+}
+
+func (s *ServerConfig) GetHost() string {
+	return s.Host
 }

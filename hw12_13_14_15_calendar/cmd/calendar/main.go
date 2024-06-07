@@ -2,33 +2,41 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/app"
-	sqlstorage "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/storage/sql"
 	"net/http"
 	"os"
 	"os/signal"
 	"path"
+	"sync"
 	"syscall"
 
-	internalhttp "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/api/server"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/config"
-	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/logger"
-	memorystorage "github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/storage/memory"
+	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/app"
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/config"
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/logger"
+	_ "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server"
+	servergrpc "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server/grpc"
+	serverhttp "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server/http"
+	memorystorage "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/storage/memory"
+	sqlstorage "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/storage/sql"
+	"github.com/pressly/goose/v3"
 )
 
 var (
-	configPath    string
-	configStorage string
+	configPath  string
+	storageType string
+
+	ErrorInvalidStorageType = errors.New("invalid storage type")
 )
 
 func init() {
 	defaultConfigPath := path.Join("configs", "config.toml")
 	flag.StringVar(&configPath, "config", defaultConfigPath, "Path to configuration file")
 
-	flag.StringVar(&configStorage, "storage", "mem", "Type of storage")
+	flag.StringVar(&storageType, "storage", "sql", "Type of storage. Expected values: \"mem\" || \"sql\"")
 }
 
 func main() {
@@ -48,36 +56,84 @@ func main() {
 	log := logger.New(conf.Logger)
 
 	var application *app.Calendar
-
-	if configStorage == "mem" {
+	switch storageType {
+	case "memory":
 		storage := memorystorage.New()
 		application = app.New(storage)
-	} else {
-		storage := sqlstorage.New(conf.Database)
+	case "sql":
+		dbConn := conf.Database
+		connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+			dbConn.UserName, dbConn.Password, dbConn.Host, dbConn.Port, dbConn.DatabaseName)
+
+		if err := runMigrations(connString); err != nil {
+			log.Error("failed to run migrations: " + err.Error())
+			return
+		}
+
+		storage, err := sqlstorage.New(connString)
+		if err != nil {
+			log.Error("failed to create SQL storage: " + err.Error())
+			return
+		}
 		application = app.New(storage)
+	default:
+		log.Error(ErrorInvalidStorageType.Error())
+		os.Exit(1)
 	}
 
-	server := internalhttp.NewServer(log, application, conf.Server)
+	httpServer := serverhttp.NewServer(log, application, conf.HTTPServer)
+	grpcServer := servergrpc.NewServer(log, application, conf.GRPCServer)
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		if err := httpServer.Start(); !errors.Is(err, http.ErrServerClosed) && err != nil {
+			log.Error("failed to start HTTP server: " + err.Error())
+			cancel()
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := grpcServer.Start(); err != nil {
+			log.Error("failed to start gRPC server: " + err.Error())
+			cancel()
+		}
+	}()
+
 	go func() {
 		<-ctx.Done()
+		log.Info("shutting down servers...")
 
-		if err := server.Stop(); err != nil {
-			log.Error("failed to stop api api: " + err.Error())
+		if err := httpServer.Stop(ctx); err != nil {
+			log.Error("failed to stop HTTP server: " + err.Error())
+		}
+
+		if err := grpcServer.Stop(ctx); err != nil {
+			log.Error("failed to stop GRPC server: " + err.Error())
 		}
 	}()
 
 	log.Info("app is running...")
+	wg.Wait()
+	log.Info("servers closed")
+}
 
-	if err := server.Start(); !errors.Is(err, http.ErrServerClosed) && err != nil {
-		log.Error("failed to start api api: " + err.Error())
-		cancel()
-		os.Exit(1) //nolint:gocritic
+func runMigrations(connString string) error {
+	db, err := sql.Open("pgx", connString)
+	if err != nil {
+		return err
 	}
+	defer db.Close()
 
-	log.Info("api closed")
+	if err := goose.Up(db, "migrations", goose.WithAllowMissing()); err != nil {
+		return err
+	}
+	return nil
 }

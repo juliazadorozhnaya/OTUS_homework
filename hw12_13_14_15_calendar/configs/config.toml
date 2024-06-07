@@ -5,10 +5,14 @@ level = "info"
 Prefix       = "postgresql"
 DatabaseName = "calendardb"
 Host         = "localhost"
-Port         = "5436"
+Port         = "5432"
 UserName     = "postgres"
 Password     = "1234512345"
 
-[server]
-Host         = "localhost"
-Port         = "2345"
+[http_server]
+Host = "localhost"
+Port = "8080"
+
+[grpc_server]
+Host = "localhost"
+Port = "9090"
