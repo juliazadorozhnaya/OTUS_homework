@@ -2,6 +2,7 @@ package sqlstorage
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
@@ -196,4 +197,57 @@ func (s *Storage) SelectEvents(ctx context.Context) (events []model.Event, err e
 	}
 
 	return events, rows.Err()
+}
+
+func (s *Storage) selectEvents(ctx context.Context, startDate, endDate time.Time) (events []model.Event, err error) {
+	events = make([]model.Event, 0)
+	sql := `SELECT id, title, description, beginning, finish, notification, userid 
+			FROM calendar.events 
+			WHERE beginning BETWEEN $1 AND $2;`
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return events, err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+		} else {
+			tx.Commit(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, sql, startDate, endDate)
+	if err != nil {
+		return events, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var event model.Event
+		err = rows.Scan(&event.ID, &event.Title, &event.Description, &event.Beginning, &event.Finish,
+			&event.Notification, &event.UserID)
+		if err != nil {
+			return events, err
+		}
+		events = append(events, event)
+	}
+
+	return events, rows.Err()
+}
+
+func (s *Storage) SelectEventsForDay(ctx context.Context, date time.Time) (events []model.Event, err error) {
+	startDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	endDate := startDate.AddDate(0, 0, 1)
+	return s.selectEvents(ctx, startDate, endDate)
+}
+
+func (s *Storage) SelectEventsForWeek(ctx context.Context, startDate time.Time) (events []model.Event, err error) {
+	endDate := startDate.AddDate(0, 0, 7)
+	return s.selectEvents(ctx, startDate, endDate)
+}
+
+func (s *Storage) SelectEventsForMonth(ctx context.Context, startDate time.Time) (events []model.Event, err error) {
+	endDate := startDate.AddDate(0, 1, 0)
+	return s.selectEvents(ctx, startDate, endDate)
 }

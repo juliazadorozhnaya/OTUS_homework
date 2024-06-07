@@ -27,9 +27,14 @@ func NewServer(logger server.Logger, app server.Application, config server.Confi
 	mux.HandleFunc("/select/users", handler.selectUsers)
 	mux.HandleFunc("/delete/user/", handler.deleteUser)
 	mux.HandleFunc("/create/event", handler.createEvent)
+
 	mux.HandleFunc("/select/events", handler.selectEvents)
 	mux.HandleFunc("/update/event", handler.updateEvent)
 	mux.HandleFunc("/delete/event/", handler.deleteEvent)
+
+	mux.HandleFunc("/select/events/day", handler.selectEventsForDay)
+	mux.HandleFunc("/select/events/week", handler.selectEventsForWeek)
+	mux.HandleFunc("/select/events/month", handler.selectEventsForMonth)
 
 	middleWare := newMiddleware(logger, mux).logging()
 

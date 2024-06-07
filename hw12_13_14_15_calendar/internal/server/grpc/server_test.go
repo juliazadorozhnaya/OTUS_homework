@@ -104,18 +104,10 @@ func userCase(ctx context.Context, t *testing.T, client api.UserServiceClient) {
 	require.NoError(t, err)
 
 	// Select users
-	stream, err := client.SelectUsers(ctx, &api.Void{})
+	response, err := client.SelectUsers(ctx, &api.Void{})
 	require.NoError(t, err)
 
-	users := make([]*api.User, 0)
-	for {
-		user, err := stream.Recv()
-		if err != nil {
-			break
-		}
-		users = append(users, user)
-	}
-
+	users := response.Users
 	require.NotEmpty(t, users)
 
 	// Delete user
@@ -137,18 +129,10 @@ func eventCase(ctx context.Context, t *testing.T, client api.EventServiceClient,
 	_, err := userClient.CreateUser(ctx, user)
 	require.NoError(t, err)
 
-	stream, err := userClient.SelectUsers(ctx, &api.Void{})
+	response, err := userClient.SelectUsers(ctx, &api.Void{})
 	require.NoError(t, err)
 
-	users := make([]*api.User, 0)
-	for {
-		user, err := stream.Recv()
-		if err != nil {
-			break
-		}
-		users = append(users, user)
-	}
-
+	users := response.Users
 	require.NotEmpty(t, users)
 	userID := users[0].ID
 
@@ -166,18 +150,10 @@ func eventCase(ctx context.Context, t *testing.T, client api.EventServiceClient,
 	require.NoError(t, err)
 
 	// Select events
-	streamEvents, err := client.SelectEvents(ctx, &api.Void{})
+	eventResponse, err := client.SelectEvents(ctx, &api.Void{})
 	require.NoError(t, err)
 
-	events := make([]*api.Event, 0)
-	for {
-		event, err := streamEvents.Recv()
-		if err != nil {
-			break
-		}
-		events = append(events, event)
-	}
-
+	events := eventResponse.Events
 	require.NotEmpty(t, events)
 
 	// Delete event

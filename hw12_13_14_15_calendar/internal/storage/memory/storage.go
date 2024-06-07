@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
@@ -112,4 +113,51 @@ func (s *Storage) SelectUsers(_ context.Context) ([]model.User, error) {
 	}
 
 	return users, nil
+}
+
+// SelectEventsForDay - возвращает события на указанный день.
+func (s *Storage) SelectEventsForDay(_ context.Context, date time.Time) ([]model.Event, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	events := make([]model.Event, 0)
+	for _, event := range s.events {
+		if event.Beginning.Year() == date.Year() && event.Beginning.YearDay() == date.YearDay() {
+			events = append(events, event)
+		}
+	}
+
+	return events, nil
+}
+
+// SelectEventsForWeek - возвращает события на неделю, начиная с указанной даты.
+func (s *Storage) SelectEventsForWeek(_ context.Context, startDate time.Time) ([]model.Event, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	events := make([]model.Event, 0)
+	endDate := startDate.AddDate(0, 0, 7)
+	for _, event := range s.events {
+		if event.Beginning.After(startDate) && event.Beginning.Before(endDate) {
+			events = append(events, event)
+		}
+	}
+
+	return events, nil
+}
+
+// SelectEventsForMonth - возвращает события на месяц, начиная с указанной даты.
+func (s *Storage) SelectEventsForMonth(_ context.Context, startDate time.Time) ([]model.Event, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	events := make([]model.Event, 0)
+	endDate := startDate.AddDate(0, 1, 0)
+	for _, event := range s.events {
+		if event.Beginning.After(startDate) && event.Beginning.Before(endDate) {
+			events = append(events, event)
+		}
+	}
+
+	return events, nil
 }

@@ -20,17 +20,18 @@ func NewEventServer(logger server.Logger, app server.Application) *EventServer {
 	return &EventServer{logger: logger, app: app}
 }
 
-func (s *EventServer) SelectEvents(_ *Void, stream EventService_SelectEventsServer) error {
+func (s *EventServer) SelectEvents(ctx context.Context, _ *Void) (*Events, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
-		s.logger.Info("SelectEvents", stream.Context(), start, duration)
+		s.logger.Info("SelectEvents", ctx, start, duration)
 	}(time.Now())
 
-	events, err := s.app.SelectEvents(stream.Context())
+	events, err := s.app.SelectEvents(ctx)
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to select events: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to select events: %v", err)
 	}
 
+	var result Events
 	for _, event := range events {
 		e := Event{
 			ID:            event.GetID(),
@@ -41,14 +42,10 @@ func (s *EventServer) SelectEvents(_ *Void, stream EventService_SelectEventsServ
 			FinishT:       timestamppb.New(event.GetFinish()),
 			NotificationT: timestamppb.New(event.GetNotification()),
 		}
-
-		err := stream.Send(&e)
-		if err != nil {
-			return status.Errorf(codes.Internal, "failed to send event: %v", err)
-		}
+		result.Events = append(result.Events, &e)
 	}
 
-	return nil
+	return &result, nil
 }
 
 func (s *EventServer) CreateEvent(ctx context.Context, event *Event) (*Void, error) {
@@ -83,6 +80,90 @@ func (s *EventServer) DeleteEvent(ctx context.Context, event *Event) (*Void, err
 		return nil, status.Errorf(codes.Internal, "failed to delete event: %v", err)
 	}
 	return &Void{}, nil
+}
+
+func (s *EventServer) SelectEventsForDay(ctx context.Context, req *DateRequest) (*Events, error) {
+	defer func(start time.Time) {
+		duration := time.Since(start)
+		s.logger.Info("SelectEventsForDay", ctx, start, duration)
+	}(time.Now())
+
+	events, err := s.app.SelectEventsForDay(ctx, req.Date.AsTime())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to select events for day: %v", err)
+	}
+
+	var result Events
+	for _, event := range events {
+		e := Event{
+			ID:            event.GetID(),
+			Title:         event.GetTitle(),
+			Description:   event.GetDescription(),
+			UserID:        event.GetUserID(),
+			BeginningT:    timestamppb.New(event.GetBeginning()),
+			FinishT:       timestamppb.New(event.GetFinish()),
+			NotificationT: timestamppb.New(event.GetNotification()),
+		}
+		result.Events = append(result.Events, &e)
+	}
+
+	return &result, nil
+}
+
+func (s *EventServer) SelectEventsForWeek(ctx context.Context, req *DateRequest) (*Events, error) {
+	defer func(start time.Time) {
+		duration := time.Since(start)
+		s.logger.Info("SelectEventsForWeek", ctx, start, duration)
+	}(time.Now())
+
+	events, err := s.app.SelectEventsForWeek(ctx, req.Date.AsTime())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to select events for week: %v", err)
+	}
+
+	var result Events
+	for _, event := range events {
+		e := Event{
+			ID:            event.GetID(),
+			Title:         event.GetTitle(),
+			Description:   event.GetDescription(),
+			UserID:        event.GetUserID(),
+			BeginningT:    timestamppb.New(event.GetBeginning()),
+			FinishT:       timestamppb.New(event.GetFinish()),
+			NotificationT: timestamppb.New(event.GetNotification()),
+		}
+		result.Events = append(result.Events, &e)
+	}
+
+	return &result, nil
+}
+
+func (s *EventServer) SelectEventsForMonth(ctx context.Context, req *DateRequest) (*Events, error) {
+	defer func(start time.Time) {
+		duration := time.Since(start)
+		s.logger.Info("SelectEventsForMonth", ctx, start, duration)
+	}(time.Now())
+
+	events, err := s.app.SelectEventsForMonth(ctx, req.Date.AsTime())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to select events for month: %v", err)
+	}
+
+	var result Events
+	for _, event := range events {
+		e := Event{
+			ID:            event.GetID(),
+			Title:         event.GetTitle(),
+			Description:   event.GetDescription(),
+			UserID:        event.GetUserID(),
+			BeginningT:    timestamppb.New(event.GetBeginning()),
+			FinishT:       timestamppb.New(event.GetFinish()),
+			NotificationT: timestamppb.New(event.GetNotification()),
+		}
+		result.Events = append(result.Events, &e)
+	}
+
+	return &result, nil
 }
 
 func (s *EventServer) mustEmbedUnimplementedEventServiceServer() {}

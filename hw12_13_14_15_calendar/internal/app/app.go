@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 )
@@ -21,6 +22,10 @@ type Storage interface {
 	SelectEvents(ctx context.Context) ([]model.Event, error)
 	UpdateEvent(ctx context.Context, Event model.Event) error
 	DeleteEvent(ctx context.Context, id string) error
+
+	SelectEventsForDay(ctx context.Context, date time.Time) ([]model.Event, error)
+	SelectEventsForWeek(ctx context.Context, startDate time.Time) ([]model.Event, error)
+	SelectEventsForMonth(ctx context.Context, startDate time.Time) ([]model.Event, error)
 }
 
 func New(storage Storage) *Calendar {
@@ -126,6 +131,66 @@ func (calendar *Calendar) SelectEvents(ctx context.Context) ([]model.IEvent, err
 	events := make([]model.IEvent, 0)
 
 	storageEvents, err := calendar.storage.SelectEvents(ctx)
+	if err != nil {
+		return events, err
+	}
+
+	for _, storageEvent := range storageEvents {
+		event := storageEvent
+		events = append(events, &event)
+	}
+
+	return events, nil
+}
+
+// SelectEventsForDay - получение событий на указанный день.
+func (calendar *Calendar) SelectEventsForDay(ctx context.Context, date time.Time) ([]model.IEvent, error) {
+	calendar.mutex.RLock()
+	defer calendar.mutex.RUnlock()
+
+	events := make([]model.IEvent, 0)
+
+	storageEvents, err := calendar.storage.SelectEventsForDay(ctx, date)
+	if err != nil {
+		return events, err
+	}
+
+	for _, storageEvent := range storageEvents {
+		event := storageEvent
+		events = append(events, &event)
+	}
+
+	return events, nil
+}
+
+// SelectEventsForWeek - получение событий на указанную неделю.
+func (calendar *Calendar) SelectEventsForWeek(ctx context.Context, startDate time.Time) ([]model.IEvent, error) {
+	calendar.mutex.RLock()
+	defer calendar.mutex.RUnlock()
+
+	events := make([]model.IEvent, 0)
+
+	storageEvents, err := calendar.storage.SelectEventsForWeek(ctx, startDate)
+	if err != nil {
+		return events, err
+	}
+
+	for _, storageEvent := range storageEvents {
+		event := storageEvent
+		events = append(events, &event)
+	}
+
+	return events, nil
+}
+
+// SelectEventsForMonth - получение событий на указанный месяц.
+func (calendar *Calendar) SelectEventsForMonth(ctx context.Context, startDate time.Time) ([]model.IEvent, error) {
+	calendar.mutex.RLock()
+	defer calendar.mutex.RUnlock()
+
+	events := make([]model.IEvent, 0)
+
+	storageEvents, err := calendar.storage.SelectEventsForMonth(ctx, startDate)
 	if err != nil {
 		return events, err
 	}

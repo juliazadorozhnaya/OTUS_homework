@@ -8,6 +8,7 @@ package api
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -32,13 +33,13 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type EventServiceClient interface {
-	SelectEvents(ctx context.Context, in *Void, opts ...grpc.CallOption) (*Events, error)
+	SelectEvents(ctx context.Context, in *Void, opts ...grpc.CallOption) (EventService_SelectEventsClient, error)
 	CreateEvent(ctx context.Context, in *Event, opts ...grpc.CallOption) (*Void, error)
 	UpdateEvent(ctx context.Context, in *Event, opts ...grpc.CallOption) (*Void, error)
 	DeleteEvent(ctx context.Context, in *Event, opts ...grpc.CallOption) (*Void, error)
-	SelectEventsForDay(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (*Events, error)
-	SelectEventsForWeek(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (*Events, error)
-	SelectEventsForMonth(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (*Events, error)
+	SelectEventsForDay(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (EventService_SelectEventsForDayClient, error)
+	SelectEventsForWeek(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (EventService_SelectEventsForWeekClient, error)
+	SelectEventsForMonth(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (EventService_SelectEventsForMonthClient, error)
 }
 
 type eventServiceClient struct {
@@ -49,14 +50,37 @@ func NewEventServiceClient(cc grpc.ClientConnInterface) EventServiceClient {
 	return &eventServiceClient{cc}
 }
 
-func (c *eventServiceClient) SelectEvents(ctx context.Context, in *Void, opts ...grpc.CallOption) (*Events, error) {
+func (c *eventServiceClient) SelectEvents(ctx context.Context, in *Void, opts ...grpc.CallOption) (EventService_SelectEventsClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Events)
-	err := c.cc.Invoke(ctx, EventService_SelectEvents_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &EventService_ServiceDesc.Streams[0], EventService_SelectEvents_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &eventServiceSelectEventsClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type EventService_SelectEventsClient interface {
+	Recv() (*Event, error)
+	grpc.ClientStream
+}
+
+type eventServiceSelectEventsClient struct {
+	grpc.ClientStream
+}
+
+func (x *eventServiceSelectEventsClient) Recv() (*Event, error) {
+	m := new(Event)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *eventServiceClient) CreateEvent(ctx context.Context, in *Event, opts ...grpc.CallOption) (*Void, error) {
@@ -89,74 +113,148 @@ func (c *eventServiceClient) DeleteEvent(ctx context.Context, in *Event, opts ..
 	return out, nil
 }
 
-func (c *eventServiceClient) SelectEventsForDay(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (*Events, error) {
+func (c *eventServiceClient) SelectEventsForDay(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (EventService_SelectEventsForDayClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Events)
-	err := c.cc.Invoke(ctx, EventService_SelectEventsForDay_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &EventService_ServiceDesc.Streams[1], EventService_SelectEventsForDay_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &eventServiceSelectEventsForDayClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
 
-func (c *eventServiceClient) SelectEventsForWeek(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (*Events, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Events)
-	err := c.cc.Invoke(ctx, EventService_SelectEventsForWeek_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+type EventService_SelectEventsForDayClient interface {
+	Recv() (*Event, error)
+	grpc.ClientStream
 }
 
-func (c *eventServiceClient) SelectEventsForMonth(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (*Events, error) {
+type eventServiceSelectEventsForDayClient struct {
+	grpc.ClientStream
+}
+
+func (x *eventServiceSelectEventsForDayClient) Recv() (*Event, error) {
+	m := new(Event)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *eventServiceClient) SelectEventsForWeek(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (EventService_SelectEventsForWeekClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Events)
-	err := c.cc.Invoke(ctx, EventService_SelectEventsForMonth_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &EventService_ServiceDesc.Streams[2], EventService_SelectEventsForWeek_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &eventServiceSelectEventsForWeekClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type EventService_SelectEventsForWeekClient interface {
+	Recv() (*Event, error)
+	grpc.ClientStream
+}
+
+type eventServiceSelectEventsForWeekClient struct {
+	grpc.ClientStream
+}
+
+func (x *eventServiceSelectEventsForWeekClient) Recv() (*Event, error) {
+	m := new(Event)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *eventServiceClient) SelectEventsForMonth(ctx context.Context, in *DateRequest, opts ...grpc.CallOption) (EventService_SelectEventsForMonthClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &EventService_ServiceDesc.Streams[3], EventService_SelectEventsForMonth_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &eventServiceSelectEventsForMonthClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type EventService_SelectEventsForMonthClient interface {
+	Recv() (*Event, error)
+	grpc.ClientStream
+}
+
+type eventServiceSelectEventsForMonthClient struct {
+	grpc.ClientStream
+}
+
+func (x *eventServiceSelectEventsForMonthClient) Recv() (*Event, error) {
+	m := new(Event)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // EventServiceServer is the server API for EventService service.
 // All implementations must embed UnimplementedEventServiceServer
 // for forward compatibility
 type EventServiceServer interface {
-	SelectEvents(context.Context, *Void) (*Events, error)
+	SelectEvents(*Void, EventService_SelectEventsServer) error
 	CreateEvent(context.Context, *Event) (*Void, error)
 	UpdateEvent(context.Context, *Event) (*Void, error)
 	DeleteEvent(context.Context, *Event) (*Void, error)
-	SelectEventsForDay(context.Context, *DateRequest) (*Events, error)
-	SelectEventsForWeek(context.Context, *DateRequest) (*Events, error)
-	SelectEventsForMonth(context.Context, *DateRequest) (*Events, error)
+	SelectEventsForDay(*DateRequest, EventService_SelectEventsForDayServer) error
+	SelectEventsForWeek(*DateRequest, EventService_SelectEventsForWeekServer) error
+	SelectEventsForMonth(*DateRequest, EventService_SelectEventsForMonthServer) error
 	mustEmbedUnimplementedEventServiceServer()
 }
 
 // UnimplementedEventServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedEventServiceServer struct {
+type UnimplementedEventServiceServer struct{}
+
+func (UnimplementedEventServiceServer) SelectEvents(*Void, EventService_SelectEventsServer) error {
+	return status.Errorf(codes.Unimplemented, "method SelectEvents not implemented")
 }
 
-func (UnimplementedEventServiceServer) SelectEvents(context.Context, *Void) (*Events, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SelectEvents not implemented")
-}
 func (UnimplementedEventServiceServer) CreateEvent(context.Context, *Event) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateEvent not implemented")
 }
+
 func (UnimplementedEventServiceServer) UpdateEvent(context.Context, *Event) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateEvent not implemented")
 }
+
 func (UnimplementedEventServiceServer) DeleteEvent(context.Context, *Event) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteEvent not implemented")
 }
-func (UnimplementedEventServiceServer) SelectEventsForDay(context.Context, *DateRequest) (*Events, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SelectEventsForDay not implemented")
+
+func (UnimplementedEventServiceServer) SelectEventsForDay(*DateRequest, EventService_SelectEventsForDayServer) error {
+	return status.Errorf(codes.Unimplemented, "method SelectEventsForDay not implemented")
 }
-func (UnimplementedEventServiceServer) SelectEventsForWeek(context.Context, *DateRequest) (*Events, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SelectEventsForWeek not implemented")
+
+func (UnimplementedEventServiceServer) SelectEventsForWeek(*DateRequest, EventService_SelectEventsForWeekServer) error {
+	return status.Errorf(codes.Unimplemented, "method SelectEventsForWeek not implemented")
 }
-func (UnimplementedEventServiceServer) SelectEventsForMonth(context.Context, *DateRequest) (*Events, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SelectEventsForMonth not implemented")
+
+func (UnimplementedEventServiceServer) SelectEventsForMonth(*DateRequest, EventService_SelectEventsForMonthServer) error {
+	return status.Errorf(codes.Unimplemented, "method SelectEventsForMonth not implemented")
 }
 func (UnimplementedEventServiceServer) mustEmbedUnimplementedEventServiceServer() {}
 
@@ -171,22 +269,25 @@ func RegisterEventServiceServer(s grpc.ServiceRegistrar, srv EventServiceServer)
 	s.RegisterService(&EventService_ServiceDesc, srv)
 }
 
-func _EventService_SelectEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Void)
-	if err := dec(in); err != nil {
-		return nil, err
+func _EventService_SelectEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Void)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(EventServiceServer).SelectEvents(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: EventService_SelectEvents_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EventServiceServer).SelectEvents(ctx, req.(*Void))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(EventServiceServer).SelectEvents(m, &eventServiceSelectEventsServer{ServerStream: stream})
+}
+
+type EventService_SelectEventsServer interface {
+	Send(*Event) error
+	grpc.ServerStream
+}
+
+type eventServiceSelectEventsServer struct {
+	grpc.ServerStream
+}
+
+func (x *eventServiceSelectEventsServer) Send(m *Event) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _EventService_CreateEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -243,58 +344,67 @@ func _EventService_DeleteEvent_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _EventService_SelectEventsForDay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DateRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _EventService_SelectEventsForDay_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DateRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(EventServiceServer).SelectEventsForDay(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: EventService_SelectEventsForDay_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EventServiceServer).SelectEventsForDay(ctx, req.(*DateRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(EventServiceServer).SelectEventsForDay(m, &eventServiceSelectEventsForDayServer{ServerStream: stream})
 }
 
-func _EventService_SelectEventsForWeek_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DateRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(EventServiceServer).SelectEventsForWeek(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: EventService_SelectEventsForWeek_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EventServiceServer).SelectEventsForWeek(ctx, req.(*DateRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+type EventService_SelectEventsForDayServer interface {
+	Send(*Event) error
+	grpc.ServerStream
 }
 
-func _EventService_SelectEventsForMonth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DateRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+type eventServiceSelectEventsForDayServer struct {
+	grpc.ServerStream
+}
+
+func (x *eventServiceSelectEventsForDayServer) Send(m *Event) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _EventService_SelectEventsForWeek_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DateRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(EventServiceServer).SelectEventsForMonth(ctx, in)
+	return srv.(EventServiceServer).SelectEventsForWeek(m, &eventServiceSelectEventsForWeekServer{ServerStream: stream})
+}
+
+type EventService_SelectEventsForWeekServer interface {
+	Send(*Event) error
+	grpc.ServerStream
+}
+
+type eventServiceSelectEventsForWeekServer struct {
+	grpc.ServerStream
+}
+
+func (x *eventServiceSelectEventsForWeekServer) Send(m *Event) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _EventService_SelectEventsForMonth_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DateRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: EventService_SelectEventsForMonth_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EventServiceServer).SelectEventsForMonth(ctx, req.(*DateRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(EventServiceServer).SelectEventsForMonth(m, &eventServiceSelectEventsForMonthServer{ServerStream: stream})
+}
+
+type EventService_SelectEventsForMonthServer interface {
+	Send(*Event) error
+	grpc.ServerStream
+}
+
+type eventServiceSelectEventsForMonthServer struct {
+	grpc.ServerStream
+}
+
+func (x *eventServiceSelectEventsForMonthServer) Send(m *Event) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 // EventService_ServiceDesc is the grpc.ServiceDesc for EventService service.
@@ -304,10 +414,6 @@ var EventService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "EventService",
 	HandlerType: (*EventServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "SelectEvents",
-			Handler:    _EventService_SelectEvents_Handler,
-		},
 		{
 			MethodName: "CreateEvent",
 			Handler:    _EventService_CreateEvent_Handler,
@@ -320,20 +426,29 @@ var EventService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "DeleteEvent",
 			Handler:    _EventService_DeleteEvent_Handler,
 		},
+	},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "SelectEventsForDay",
-			Handler:    _EventService_SelectEventsForDay_Handler,
+			StreamName:    "SelectEvents",
+			Handler:       _EventService_SelectEvents_Handler,
+			ServerStreams: true,
 		},
 		{
-			MethodName: "SelectEventsForWeek",
-			Handler:    _EventService_SelectEventsForWeek_Handler,
+			StreamName:    "SelectEventsForDay",
+			Handler:       _EventService_SelectEventsForDay_Handler,
+			ServerStreams: true,
 		},
 		{
-			MethodName: "SelectEventsForMonth",
-			Handler:    _EventService_SelectEventsForMonth_Handler,
+			StreamName:    "SelectEventsForWeek",
+			Handler:       _EventService_SelectEventsForWeek_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SelectEventsForMonth",
+			Handler:       _EventService_SelectEventsForMonth_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "internal/server/grpc/EventService.proto",
 }
 
@@ -347,7 +462,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
-	SelectUsers(ctx context.Context, in *Void, opts ...grpc.CallOption) (*Users, error)
+	SelectUsers(ctx context.Context, in *Void, opts ...grpc.CallOption) (UserService_SelectUsersClient, error)
 	CreateUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Void, error)
 	DeleteUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Void, error)
 }
@@ -360,14 +475,37 @@ func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
 	return &userServiceClient{cc}
 }
 
-func (c *userServiceClient) SelectUsers(ctx context.Context, in *Void, opts ...grpc.CallOption) (*Users, error) {
+func (c *userServiceClient) SelectUsers(ctx context.Context, in *Void, opts ...grpc.CallOption) (UserService_SelectUsersClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Users)
-	err := c.cc.Invoke(ctx, UserService_SelectUsers_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &UserService_ServiceDesc.Streams[0], UserService_SelectUsers_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &userServiceSelectUsersClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type UserService_SelectUsersClient interface {
+	Recv() (*User, error)
+	grpc.ClientStream
+}
+
+type userServiceSelectUsersClient struct {
+	grpc.ClientStream
+}
+
+func (x *userServiceSelectUsersClient) Recv() (*User, error) {
+	m := new(User)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *userServiceClient) CreateUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Void, error) {
@@ -394,22 +532,23 @@ func (c *userServiceClient) DeleteUser(ctx context.Context, in *User, opts ...gr
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
 type UserServiceServer interface {
-	SelectUsers(context.Context, *Void) (*Users, error)
+	SelectUsers(*Void, UserService_SelectUsersServer) error
 	CreateUser(context.Context, *User) (*Void, error)
 	DeleteUser(context.Context, *User) (*Void, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
 // UnimplementedUserServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedUserServiceServer struct {
+type UnimplementedUserServiceServer struct{}
+
+func (UnimplementedUserServiceServer) SelectUsers(*Void, UserService_SelectUsersServer) error {
+	return status.Errorf(codes.Unimplemented, "method SelectUsers not implemented")
 }
 
-func (UnimplementedUserServiceServer) SelectUsers(context.Context, *Void) (*Users, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SelectUsers not implemented")
-}
 func (UnimplementedUserServiceServer) CreateUser(context.Context, *User) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateUser not implemented")
 }
+
 func (UnimplementedUserServiceServer) DeleteUser(context.Context, *User) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUser not implemented")
 }
@@ -426,22 +565,25 @@ func RegisterUserServiceServer(s grpc.ServiceRegistrar, srv UserServiceServer) {
 	s.RegisterService(&UserService_ServiceDesc, srv)
 }
 
-func _UserService_SelectUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Void)
-	if err := dec(in); err != nil {
-		return nil, err
+func _UserService_SelectUsers_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Void)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).SelectUsers(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_SelectUsers_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).SelectUsers(ctx, req.(*Void))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(UserServiceServer).SelectUsers(m, &userServiceSelectUsersServer{ServerStream: stream})
+}
+
+type UserService_SelectUsersServer interface {
+	Send(*User) error
+	grpc.ServerStream
+}
+
+type userServiceSelectUsersServer struct {
+	grpc.ServerStream
+}
+
+func (x *userServiceSelectUsersServer) Send(m *User) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _UserService_CreateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -488,10 +630,6 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*UserServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SelectUsers",
-			Handler:    _UserService_SelectUsers_Handler,
-		},
-		{
 			MethodName: "CreateUser",
 			Handler:    _UserService_CreateUser_Handler,
 		},
@@ -500,6 +638,12 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_DeleteUser_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SelectUsers",
+			Handler:       _UserService_SelectUsers_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "internal/server/grpc/EventService.proto",
 }

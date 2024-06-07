@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"time"
 
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 )
@@ -33,4 +34,8 @@ type Application interface {
 	SelectEvents(context.Context) ([]model.IEvent, error)
 	UpdateEvent(context.Context, model.IEvent) error
 	DeleteEvent(context.Context, string) error
+
+	SelectEventsForDay(context.Context, time.Time) ([]model.IEvent, error)
+	SelectEventsForWeek(context.Context, time.Time) ([]model.IEvent, error)
+	SelectEventsForMonth(context.Context, time.Time) ([]model.IEvent, error)
 }

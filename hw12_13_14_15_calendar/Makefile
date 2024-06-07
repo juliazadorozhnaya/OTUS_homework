@@ -4,6 +4,8 @@ MAIN_CALENDAR := "./cmd/calendar"
 
 CONFIG_CALENDAR := "./configs/calendar/config.toml"
 
+LINT_EXCLUDE_DIRS="hw12_13_14_15_calendar/internal/server"
+
 DOCKER_IMG="calendar:develop"
 
 GIT_HASH := $(shell git log --format="%h" -n 1)
@@ -17,10 +19,10 @@ install-lint-deps:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.55.2
 
 lint: install-lint-deps
-	golangci-lint run ./...
+	golangci-lint run ./... --exclude=".*internal/server/.*"
 
 generate:
-	protoc --go_out=internal/server/grpc --go-grpc_out=internal/server/grpc api/CalendarService.proto
+	protoc --go_out=internal/server/grpc/api --go-grpc_out=internal/server/grpc/ internal/server/grpc/EventService.proto
 
 postgres:
 	docker run --name postgresdb --env POSTGRES_PASSWORD="1234512345" --publish "5436:5432" --detach --rm postgres

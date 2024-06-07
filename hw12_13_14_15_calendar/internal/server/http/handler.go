@@ -3,12 +3,20 @@ package serverhttp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/model"
 	"github.com/juliazadorozhnaya/hw12_13_14_15_calendar/internal/server"
+)
+
+const (
+	selectEventsForDayMsg   = "selectEventsForDay: "
+	selectEventsForWeekMsg  = "selectEventsForWeek: "
+	selectEventsForMonthMsg = "selectEventsForMonth: "
 )
 
 type handler struct {
@@ -167,6 +175,84 @@ func (h *handler) deleteEvent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// selectEventsForDay обрабатывает запрос на получение списка событий на указанный день.
+func (h *handler) selectEventsForDay(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	date, err := parseDateFromQuery(r, "date")
+	if err != nil {
+		h.logger.Error(selectEventsForDayMsg + err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	h.logger.Debug("Selecting events for day: " + date.String())
+	marshal, err := selectAsJSON(ctx, func(ctx context.Context) (interface{}, error) {
+		return h.app.SelectEventsForDay(ctx, date)
+	})
+	if err != nil {
+		h.logger.Error(selectEventsForDayMsg + err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := sendData(w, marshal); err != nil {
+		h.logger.Error(selectEventsForDayMsg + err.Error())
+	}
+	h.logger.Info("Events for day selected")
+}
+
+// selectEventsForWeek обрабатывает запрос на получение списка событий на указанную неделю.
+func (h *handler) selectEventsForWeek(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	startDate, err := parseDateFromQuery(r, "startDate")
+	if err != nil {
+		h.logger.Error(selectEventsForWeekMsg + err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	h.logger.Debug("Selecting events for week starting: " + startDate.String())
+	marshal, err := selectAsJSON(ctx, func(ctx context.Context) (interface{}, error) {
+		return h.app.SelectEventsForWeek(ctx, startDate)
+	})
+	if err != nil {
+		h.logger.Error(selectEventsForWeekMsg + err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := sendData(w, marshal); err != nil {
+		h.logger.Error(selectEventsForWeekMsg + err.Error())
+	}
+	h.logger.Info("Events for week selected")
+}
+
+// selectEventsForMonth обрабатывает запрос на получение списка событий на указанный месяц.
+func (h *handler) selectEventsForMonth(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	startDate, err := parseDateFromQuery(r, "startDate")
+	if err != nil {
+		h.logger.Error(selectEventsForMonthMsg + err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	h.logger.Debug("Selecting events for month starting: " + startDate.String())
+	marshal, err := selectAsJSON(ctx, func(ctx context.Context) (interface{}, error) {
+		return h.app.SelectEventsForMonth(ctx, startDate)
+	})
+	if err != nil {
+		h.logger.Error(selectEventsForMonthMsg + err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := sendData(w, marshal); err != nil {
+		h.logger.Error(selectEventsForMonthMsg + err.Error())
+	}
+	h.logger.Info("Events for month selected")
+}
+
 // readUserFromBody читает и разбирает тело запроса в структуру User.
 func readUserFromBody(r *http.Request) (*model.User, error) {
 	defer r.Body.Close()
@@ -219,4 +305,13 @@ func getIDFromPath(path string) string {
 		return ""
 	}
 	return parts[len(parts)-1]
+}
+
+// parseDateFromQuery извлекает и парсит дату из параметров запроса.
+func parseDateFromQuery(r *http.Request, key string) (time.Time, error) {
+	dateStr := r.URL.Query().Get(key)
+	if dateStr == "" {
+		return time.Time{}, errors.New("missing " + key + " in query")
+	}
+	return time.Parse("2006-01-02", dateStr)
 }
