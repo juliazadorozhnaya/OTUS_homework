@@ -1,6 +1,15 @@
-BIN := "./bin/calendar"
-MAIN := "./cmd"
-CONFIG := "./config/config.toml"
+BIN_CALENDAR := "./bin/calendar"
+BIN_SCHEDULER := "./bin/scheduler"
+BIN_SENDER := "./bin/sender"
+
+MAIN_CALENDAR := "./cmd/calendar"
+MAIN_SCHEDULER := "./cmd/calendar_scheduler"
+MAIN_SENDER := "./cmd/calendar_sender"
+
+CONFIG_CALENDAR := "./config/calendar_config.toml"
+CONFIG_SCHEDULER := "./config/scheduler_config.toml"
+CONFIG_SENDER := "./config/sender_config.toml"
+
 
 LINT_EXCLUDE_DIRS="hw12_13_14_15_calendar/internal/server"
 
@@ -23,10 +32,27 @@ generate:
 	protoc --go_out=internal/server/grpc/api --go-grpc_out=internal/server/grpc/ internal/server/grpc/EventService.proto
 
 build:
-	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" $(MAIN)
+	go build -v -o $(BIN_CALENDAR) -ldflags "$(LDFLAGS)" $(MAIN_CALENDAR)
+	go build -o $(BIN_SENDER) $(MAIN_SENDER)
+	go build -o $(BIN_SCHEDULER) $(MAIN_SCHEDULER)
 
-run: build
-	$(BIN) -config $(CONFIG)
+build-calendar:
+	go build -v -o $(BIN_CALENDAR) -ldflags "$(LDFLAGS)" $(MAIN_CALENDAR)
+
+build-scheduler:
+	go build -o $(BIN_SCHEDULER) $(MAIN_SCHEDULER)
+
+build-sender:
+	go build -o $(BIN_SENDER) $(MAIN_SENDER)
+
+run-calendar: build-calendar
+	$(BIN_CALENDAR) -config $(CONFIG_CALENDAR)
+
+run-scheduler: build-scheduler
+	$(BIN_SCHEDULER) -config $(CONFIG_SCHEDULER)
+
+run-sender: build-sender
+	$(BIN_SENDER) -config $(CONFIG_SENDER)
 
 version: build
 	$(BIN) version

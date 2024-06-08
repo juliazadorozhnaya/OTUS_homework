@@ -16,13 +16,6 @@ noLocal = false
 noWait = false
 interval = "1m"
 
-[publish]
-exchange = "test"
-key = "notification"
-contentType = "text/plain"
-mandatory = false
-immediate = false
-
 [queue]
 name = "notification"
 durable = true
@@ -37,11 +30,3 @@ Host         = "localhost"
 Port         = "5432"
 UserName     = "postgres"
 Password     = "1234512345"
-
-[http_server]
-Host = "localhost"
-Port = "8080"
-
-[grpc_server]
-Host = "localhost"
-Port = "9090"

@@ -15,10 +15,8 @@ import (
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/app"
-	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/broker/rabbitmq"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/config"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/logger"
-	_ "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server"
 	servergrpc "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server/grpc"
 	serverhttp "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server/http"
 	memorystorage "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/storage/memory"
@@ -34,10 +32,9 @@ var (
 )
 
 func init() {
-	defaultConfigPath := path.Join("config", "config.toml")
+	defaultConfigPath := path.Join("config", "calendar_config.toml")
 	flag.StringVar(&configPath, "config", defaultConfigPath, "Path to configuration file")
-
-	flag.StringVar(&storageType, "storage", "sql", "Type of storage. Expected values: \"mem\" || \"sql\"")
+	flag.StringVar(&storageType, "storage", "sql", "Type of storage. Expected values: \"memory\" || \"sql\"")
 }
 
 func main() {
@@ -85,21 +82,12 @@ func main() {
 	httpServer := serverhttp.NewServer(log, calendarApp, conf.HTTPServer)
 	grpcServer := servergrpc.NewServer(log, calendarApp, conf.GRPCServer)
 
-	rabbitMQ := rabbitmq.New(*conf.RabbitMQ.Connection)
-	if err := rabbitMQ.Start(); err != nil {
-		log.Error("failed to start RabbitMQ broker for scheduler: " + err.Error())
-		return
-	}
-
-	scheduler := app.NewScheduler(calendarApp, &rabbitMQ, log, conf.RabbitMQ.Consume.Interval)
-	sender := app.NewSender(&rabbitMQ, log)
-
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
 	var wg sync.WaitGroup
-	wg.Add(4)
+	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
@@ -118,22 +106,6 @@ func main() {
 	}()
 
 	go func() {
-		defer wg.Done()
-		if err := scheduler.Start(ctx); err != nil {
-			log.Error("scheduler error: " + err.Error())
-			cancel()
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		if err := sender.Start(ctx); err != nil {
-			log.Error("sender error: " + err.Error())
-			cancel()
-		}
-	}()
-
-	go func() {
 		<-ctx.Done()
 		log.Info("shutting down servers...")
 
@@ -143,12 +115,6 @@ func main() {
 
 		if err := grpcServer.Stop(ctx); err != nil {
 			log.Error("failed to stop GRPC server: " + err.Error())
-		}
-
-		scheduler.Stop()
-		sender.Stop()
-		if err := rabbitMQ.Stop(); err != nil {
-			log.Error("failed to stop RabbitMQ broker for scheduler: " + err.Error())
 		}
 	}()
 
