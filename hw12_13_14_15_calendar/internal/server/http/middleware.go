@@ -9,7 +9,6 @@ import (
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server"
 )
 
-// middleware представляет структуру для обработки middleware с логгером и http.Handler.
 type middleware struct {
 	logger  server.Logger
 	Handler http.Handler
@@ -30,7 +29,6 @@ func (m *middleware) logging() *middleware {
 	m.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// Создаем обертку для ResponseWriter, чтобы отслеживать статус-код.
 		wrappedWriter := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 		curHandler.ServeHTTP(wrappedWriter, r)
 

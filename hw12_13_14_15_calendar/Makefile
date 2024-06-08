@@ -1,12 +1,10 @@
-BIN_CALENDAR := "./bin/calendar"
-
-MAIN_CALENDAR := "./cmd/calendar"
-
-CONFIG_CALENDAR := "./configs/calendar/config.toml"
+BIN := "./bin/calendar"
+MAIN := "./cmd"
+CONFIG := "./config/config.toml"
 
 LINT_EXCLUDE_DIRS="hw12_13_14_15_calendar/internal/server"
 
-DOCKER_IMG="calendar:develop"
+DOCKER_IMG="develop"
 
 GIT_HASH := $(shell git log --format="%h" -n 1)
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
@@ -24,17 +22,14 @@ lint: install-lint-deps
 generate:
 	protoc --go_out=internal/server/grpc/api --go-grpc_out=internal/server/grpc/ internal/server/grpc/EventService.proto
 
-postgres:
-	docker run --name postgresdb --env POSTGRES_PASSWORD="1234512345" --publish "5436:5432" --detach --rm postgres
-
 build:
-	go build -v -o $(BIN_CALENDAR) -ldflags "$(LDFLAGS)" $(MAIN_CALENDAR)
+	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" $(MAIN)
 
-build-calendar:
-	go build -v -o $(BIN_CALENDAR) -ldflags "$(LDFLAGS)" $(MAIN_CALENDAR)
+run: build
+	$(BIN) -config $(CONFIG)
 
-run-calendar: build-calendar
-	$(BIN_CALENDAR) -config $(CONFIG_CALENDAR)
+version: build
+	$(BIN) version
 
 build-img:
 	docker build \
@@ -42,15 +37,15 @@ build-img:
 		-t $(DOCKER_IMG) \
 		-f build/Dockerfile .
 
-run-img: build-img
-	docker run $(DOCKER_IMG)
-
-version: build-calendar
-	$(BIN_CALENDAR) version
+postgres:
+	docker run --name postgresdb --env POSTGRES_PASSWORD="1234512345" --publish "5436:5432" --detach --rm postgres
 
 migrate-up:
 	docker exec -it postgresdb createdb --username postgres calendardb
 	migrate -path migrations -database "postgres://postgres:1234512345@localhost:5432/calendardb?sslmode=disable" -verbose up
+
+run-img: build-img
+	docker run $(DOCKER_IMG)
 
 up:
 	cd deployments && docker-compose -f docker-compose.yaml build && docker-compose -f docker-compose.yaml up

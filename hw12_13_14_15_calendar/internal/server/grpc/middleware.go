@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// LoggingInterceptor is a gRPC interceptor for logging requests and responses.
+// LoggingInterceptor - middleware gRPC интерцептор для логирования запросов и ответов.
 func LoggingInterceptor(logger server.Logger) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,

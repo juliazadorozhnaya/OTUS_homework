@@ -1,0 +1,47 @@
+[logger]
+level = "info"
+
+[connection]
+login = "guest"
+password = "guest"
+host = "localhost"
+port = "5672"
+
+[consume]
+queue = "notification"
+consumer = "q"
+autoAck = true
+exclusive = false
+noLocal = false
+noWait = false
+interval = "1m"
+
+[publish]
+exchange = "test"
+key = "notification"
+contentType = "text/plain"
+mandatory = false
+immediate = false
+
+[queue]
+name = "notification"
+durable = true
+autoDelete = false
+exclusive = false
+noWait = false
+
+[database]
+Prefix       = "postgresql"
+DatabaseName = "calendardb"
+Host         = "localhost"
+Port         = "5432"
+UserName     = "postgres"
+Password     = "1234512345"
+
+[http_server]
+Host = "localhost"
+Port = "8080"
+
+[grpc_server]
+Host = "localhost"
+Port = "9090"

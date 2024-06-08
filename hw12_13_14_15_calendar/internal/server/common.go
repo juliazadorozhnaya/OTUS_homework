@@ -35,6 +35,7 @@ type Application interface {
 	UpdateEvent(context.Context, model.IEvent) error
 	DeleteEvent(context.Context, string) error
 
+	SelectEventsByTime(context.Context, time.Time) ([]model.IEvent, error)
 	SelectEventsForDay(context.Context, time.Time) ([]model.IEvent, error)
 	SelectEventsForWeek(context.Context, time.Time) ([]model.IEvent, error)
 	SelectEventsForMonth(context.Context, time.Time) ([]model.IEvent, error)

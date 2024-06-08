@@ -15,6 +15,7 @@ import (
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/app"
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/broker/rabbitmq"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/config"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/logger"
 	_ "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server"
@@ -33,7 +34,7 @@ var (
 )
 
 func init() {
-	defaultConfigPath := path.Join("configs", "config.toml")
+	defaultConfigPath := path.Join("config", "config.toml")
 	flag.StringVar(&configPath, "config", defaultConfigPath, "Path to configuration file")
 
 	flag.StringVar(&storageType, "storage", "sql", "Type of storage. Expected values: \"mem\" || \"sql\"")
@@ -47,19 +48,18 @@ func main() {
 		return
 	}
 
-	conf, err := config.New(configPath)
-	if err != nil {
+	if err := config.LoadConfig(configPath); err != nil {
 		fmt.Println(err)
 		return
 	}
+	conf := config.Get()
 
 	log := logger.New(conf.Logger)
 
-	var application *app.Calendar
+	var storage app.Storage
 	switch storageType {
 	case "memory":
-		storage := memorystorage.New()
-		application = app.New(storage)
+		storage = memorystorage.New()
 	case "sql":
 		dbConn := conf.Database
 		connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
@@ -70,26 +70,36 @@ func main() {
 			return
 		}
 
-		storage, err := sqlstorage.New(connString)
+		var err error
+		storage, err = sqlstorage.New(connString)
 		if err != nil {
 			log.Error("failed to create SQL storage: " + err.Error())
 			return
 		}
-		application = app.New(storage)
 	default:
 		log.Error(ErrorInvalidStorageType.Error())
 		os.Exit(1)
 	}
 
-	httpServer := serverhttp.NewServer(log, application, conf.HTTPServer)
-	grpcServer := servergrpc.NewServer(log, application, conf.GRPCServer)
+	calendarApp := app.New(storage)
+	httpServer := serverhttp.NewServer(log, calendarApp, conf.HTTPServer)
+	grpcServer := servergrpc.NewServer(log, calendarApp, conf.GRPCServer)
+
+	rabbitMQ := rabbitmq.New(*conf.RabbitMQ.Connection)
+	if err := rabbitMQ.Start(); err != nil {
+		log.Error("failed to start RabbitMQ broker for scheduler: " + err.Error())
+		return
+	}
+
+	scheduler := app.NewScheduler(calendarApp, &rabbitMQ, log, conf.RabbitMQ.Consume.Interval)
+	sender := app.NewSender(&rabbitMQ, log)
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(4)
 
 	go func() {
 		defer wg.Done()
@@ -108,6 +118,22 @@ func main() {
 	}()
 
 	go func() {
+		defer wg.Done()
+		if err := scheduler.Start(ctx); err != nil {
+			log.Error("scheduler error: " + err.Error())
+			cancel()
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := sender.Start(ctx); err != nil {
+			log.Error("sender error: " + err.Error())
+			cancel()
+		}
+	}()
+
+	go func() {
 		<-ctx.Done()
 		log.Info("shutting down servers...")
 
@@ -118,11 +144,17 @@ func main() {
 		if err := grpcServer.Stop(ctx); err != nil {
 			log.Error("failed to stop GRPC server: " + err.Error())
 		}
+
+		scheduler.Stop()
+		sender.Stop()
+		if err := rabbitMQ.Stop(); err != nil {
+			log.Error("failed to stop RabbitMQ broker for scheduler: " + err.Error())
+		}
 	}()
 
-	log.Info("app is running...")
+	log.Info("App is running...")
 	wg.Wait()
-	log.Info("servers closed")
+	log.Info("Servers closed")
 }
 
 func runMigrations(connString string) error {

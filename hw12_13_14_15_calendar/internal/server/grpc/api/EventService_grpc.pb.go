@@ -8,6 +8,7 @@ package api
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -134,27 +135,32 @@ type EventServiceServer interface {
 }
 
 // UnimplementedEventServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedEventServiceServer struct {
-}
+type UnimplementedEventServiceServer struct{}
 
 func (UnimplementedEventServiceServer) SelectEvents(context.Context, *Void) (*Events, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SelectEvents not implemented")
 }
+
 func (UnimplementedEventServiceServer) CreateEvent(context.Context, *Event) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateEvent not implemented")
 }
+
 func (UnimplementedEventServiceServer) UpdateEvent(context.Context, *Event) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateEvent not implemented")
 }
+
 func (UnimplementedEventServiceServer) DeleteEvent(context.Context, *Event) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteEvent not implemented")
 }
+
 func (UnimplementedEventServiceServer) SelectEventsForDay(context.Context, *DateRequest) (*Events, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SelectEventsForDay not implemented")
 }
+
 func (UnimplementedEventServiceServer) SelectEventsForWeek(context.Context, *DateRequest) (*Events, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SelectEventsForWeek not implemented")
 }
+
 func (UnimplementedEventServiceServer) SelectEventsForMonth(context.Context, *DateRequest) (*Events, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SelectEventsForMonth not implemented")
 }
@@ -401,15 +407,16 @@ type UserServiceServer interface {
 }
 
 // UnimplementedUserServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedUserServiceServer struct {
-}
+type UnimplementedUserServiceServer struct{}
 
 func (UnimplementedUserServiceServer) SelectUsers(context.Context, *Void) (*Users, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SelectUsers not implemented")
 }
+
 func (UnimplementedUserServiceServer) CreateUser(context.Context, *User) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateUser not implemented")
 }
+
 func (UnimplementedUserServiceServer) DeleteUser(context.Context, *User) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUser not implemented")
 }
