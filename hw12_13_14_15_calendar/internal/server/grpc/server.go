@@ -17,7 +17,6 @@ type Server struct {
 	srv     *grpc.Server
 }
 
-// NewServer создает новый gRPC сервер с указанным логгером, приложением и конфигурацией.
 func NewServer(logger server.Logger, app server.Application, config server.Config) *Server {
 	srv := grpc.NewServer(
 		grpc.UnaryInterceptor(LoggingInterceptor(logger)),

@@ -1,0 +1,32 @@
+[logger]
+level = "info"
+
+[connection]
+login = "guest"
+password = "guest"
+host = "localhost"
+port = "5672"
+
+[consume]
+queue = "notification"
+consumer = "q"
+autoAck = true
+exclusive = false
+noLocal = false
+noWait = false
+interval = "1m"
+
+[queue]
+name = "notification"
+durable = true
+autoDelete = false
+exclusive = false
+noWait = false
+
+[database]
+Prefix       = "postgresql"
+DatabaseName = "calendardb"
+Host         = "localhost"
+Port         = "5432"
+UserName     = "postgres"
+Password     = "1234512345"

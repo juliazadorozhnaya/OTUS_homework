@@ -22,6 +22,7 @@ func NewUserServer(logger server.Logger, app server.Application) *UserServer {
 	}
 }
 
+// SelectUsers возвращает всех пользователей.
 func (s *UserServer) SelectUsers(ctx context.Context, _ *Void) (*Users, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
@@ -47,6 +48,7 @@ func (s *UserServer) SelectUsers(ctx context.Context, _ *Void) (*Users, error) {
 	return &Users{Users: protoUsers}, nil
 }
 
+// CreateUser создает нового пользователя.
 func (s *UserServer) CreateUser(ctx context.Context, user *User) (*Void, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
@@ -60,6 +62,7 @@ func (s *UserServer) CreateUser(ctx context.Context, user *User) (*Void, error) 
 	return &Void{}, nil
 }
 
+// DeleteUser удаляет пользователя по его идентификатору.
 func (s *UserServer) DeleteUser(ctx context.Context, user *User) (*Void, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
@@ -73,4 +76,5 @@ func (s *UserServer) DeleteUser(ctx context.Context, user *User) (*Void, error) 
 	return &Void{}, nil
 }
 
+// mustEmbedUnimplementedUserServiceServer требуется для реализации интерфейса gRPC.
 func (s *UserServer) mustEmbedUnimplementedUserServiceServer() {}

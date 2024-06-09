@@ -6,19 +6,16 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"net/http"
+	"log"
 	"os"
 	"os/signal"
 	"path"
-	"sync"
-	"syscall"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/app"
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/broker/rabbitmq"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/config"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/logger"
-	servergrpc "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server/grpc"
-	serverhttp "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/server/http"
 	memorystorage "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/storage/memory"
 	sqlstorage "github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/storage/sql"
 	"github.com/pressly/goose/v3"
@@ -32,7 +29,7 @@ var (
 )
 
 func init() {
-	defaultConfigPath := path.Join("config", "calendar_config.toml")
+	defaultConfigPath := path.Join("config", "scheduler_config.toml")
 	flag.StringVar(&configPath, "config", defaultConfigPath, "Path to configuration file")
 	flag.StringVar(&storageType, "storage", "sql", "Type of storage. Expected values: \"memory\" || \"sql\"")
 }
@@ -40,18 +37,13 @@ func init() {
 func main() {
 	flag.Parse()
 
-	if flag.Arg(0) == "version" {
-		printVersion()
-		return
-	}
-
+	log.Println("Loading configuration...")
 	if err := config.LoadConfig(configPath); err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalf("Error loading config: %v", err)
 	}
-	conf := config.Get()
 
-	log := logger.New(conf.Logger)
+	conf := config.Get()
+	l := logger.New(conf.Logger)
 
 	var storage app.Storage
 	switch storageType {
@@ -62,65 +54,62 @@ func main() {
 		connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
 			dbConn.UserName, dbConn.Password, dbConn.Host, dbConn.Port, dbConn.DatabaseName)
 
+		l.Info("Running migrations...")
 		if err := runMigrations(connString); err != nil {
-			log.Error("failed to run migrations: " + err.Error())
+			l.Error("Failed to run migrations: " + err.Error())
 			return
 		}
 
 		var err error
 		storage, err = sqlstorage.New(connString)
 		if err != nil {
-			log.Error("failed to create SQL storage: " + err.Error())
+			l.Error("Failed to create SQL storage: " + err.Error())
 			return
 		}
 	default:
-		log.Error(ErrorInvalidStorageType.Error())
+		l.Error(ErrorInvalidStorageType.Error())
 		os.Exit(1)
 	}
 
-	calendarApp := app.New(storage)
-	httpServer := serverhttp.NewServer(log, calendarApp, conf.HTTPServer)
-	grpcServer := servergrpc.NewServer(log, calendarApp, conf.GRPCServer)
+	l.Info("Connecting to RabbitMQ...")
+	rabbit := rabbitmq.New(*conf.RabbitMQ.Connection)
+	if err := rabbit.Start(); err != nil {
+		l.Error("Error connecting to RabbitMQ: " + err.Error())
+		return
+	}
+	defer func() {
+		l.Info("Stopping RabbitMQ connection...")
+		if err := rabbit.Stop(); err != nil {
+			l.Error("Error stopping RabbitMQ: " + err.Error())
+		}
+	}()
 
-	ctx, cancel := signal.NotifyContext(context.Background(),
-		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	l.Info("Declaring RabbitMQ queue...")
+	err := rabbit.QueueDeclare(*conf.RabbitMQ.Queue)
+	if err != nil {
+		l.Error("Error declaring queue: " + err.Error())
+		return
+	}
+
+	l.Info("Creating new calendar app...")
+	calendarApp := app.New(storage)
+	scheduler := app.NewScheduler(calendarApp, &rabbit, l, conf.RabbitMQ.Consume.Interval)
+
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var wg sync.WaitGroup
-	wg.Add(2)
-
 	go func() {
-		defer wg.Done()
-		if err := httpServer.Start(); !errors.Is(err, http.ErrServerClosed) && err != nil {
-			log.Error("failed to start HTTP server: " + err.Error())
-			cancel()
-		}
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		<-c
+		l.Info("Received interrupt signal, shutting down...")
+		cancel()
 	}()
 
-	go func() {
-		defer wg.Done()
-		if err := grpcServer.Start(); err != nil {
-			log.Error("failed to start gRPC server: " + err.Error())
-			cancel()
-		}
-	}()
-
-	go func() {
-		<-ctx.Done()
-		log.Info("shutting down servers...")
-
-		if err := httpServer.Stop(ctx); err != nil {
-			log.Error("failed to stop HTTP server: " + err.Error())
-		}
-
-		if err := grpcServer.Stop(ctx); err != nil {
-			log.Error("failed to stop GRPC server: " + err.Error())
-		}
-	}()
-
-	log.Info("App is running...")
-	wg.Wait()
-	log.Info("Servers closed")
+	l.Info("Starting scheduler...")
+	if err := scheduler.Start(ctx); err != nil {
+		l.Error("Scheduler error: " + err.Error())
+	}
 }
 
 func runMigrations(connString string) error {

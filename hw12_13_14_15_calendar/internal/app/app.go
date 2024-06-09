@@ -23,6 +23,7 @@ type Storage interface {
 	UpdateEvent(ctx context.Context, Event model.Event) error
 	DeleteEvent(ctx context.Context, id string) error
 
+	SelectEventsByTime(context.Context, time.Time) ([]model.Event, error)
 	SelectEventsForDay(ctx context.Context, date time.Time) ([]model.Event, error)
 	SelectEventsForWeek(ctx context.Context, startDate time.Time) ([]model.Event, error)
 	SelectEventsForMonth(ctx context.Context, startDate time.Time) ([]model.Event, error)
@@ -35,7 +36,7 @@ func New(storage Storage) *Calendar {
 	}
 }
 
-// CreateUser - создание пользователя.
+// CreateUser создание пользователя.
 func (calendar *Calendar) CreateUser(ctx context.Context, user model.IUser) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
@@ -51,7 +52,7 @@ func (calendar *Calendar) CreateUser(ctx context.Context, user model.IUser) erro
 	return calendar.storage.CreateUser(ctx, storageUser)
 }
 
-// SelectUsers - получение пользователей.
+// SelectUsers получение пользователей.
 func (calendar *Calendar) SelectUsers(ctx context.Context) ([]model.IUser, error) {
 	calendar.mutex.RLock()
 	defer calendar.mutex.RUnlock()
@@ -71,7 +72,7 @@ func (calendar *Calendar) SelectUsers(ctx context.Context) ([]model.IUser, error
 	return users, nil
 }
 
-// DeleteUser - удаление пользователя.
+// DeleteUser удаление пользователя.
 func (calendar *Calendar) DeleteUser(ctx context.Context, id string) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
@@ -79,7 +80,7 @@ func (calendar *Calendar) DeleteUser(ctx context.Context, id string) error {
 	return calendar.storage.DeleteUser(ctx, id)
 }
 
-// CreateEvent - создание события.
+// CreateEvent создание события.
 func (calendar *Calendar) CreateEvent(ctx context.Context, event model.IEvent) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
@@ -97,7 +98,7 @@ func (calendar *Calendar) CreateEvent(ctx context.Context, event model.IEvent) e
 	return calendar.storage.CreateEvent(ctx, storageEvent)
 }
 
-// UpdateEvent - обновление события.
+// UpdateEvent обновление события.
 func (calendar *Calendar) UpdateEvent(ctx context.Context, event model.IEvent) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
@@ -115,7 +116,7 @@ func (calendar *Calendar) UpdateEvent(ctx context.Context, event model.IEvent) e
 	return calendar.storage.UpdateEvent(ctx, storageEvent)
 }
 
-// DeleteEvent - удаление события.
+// DeleteEvent удаление события.
 func (calendar *Calendar) DeleteEvent(ctx context.Context, id string) error {
 	calendar.mutex.Lock()
 	defer calendar.mutex.Unlock()
@@ -123,7 +124,7 @@ func (calendar *Calendar) DeleteEvent(ctx context.Context, id string) error {
 	return calendar.storage.DeleteEvent(ctx, id)
 }
 
-// SelectEvents - получение событий.
+// SelectEvents получение событий.
 func (calendar *Calendar) SelectEvents(ctx context.Context) ([]model.IEvent, error) {
 	calendar.mutex.RLock()
 	defer calendar.mutex.RUnlock()
@@ -143,7 +144,7 @@ func (calendar *Calendar) SelectEvents(ctx context.Context) ([]model.IEvent, err
 	return events, nil
 }
 
-// SelectEventsForDay - получение событий на указанный день.
+// SelectEventsForDay получение событий на указанный день.
 func (calendar *Calendar) SelectEventsForDay(ctx context.Context, date time.Time) ([]model.IEvent, error) {
 	calendar.mutex.RLock()
 	defer calendar.mutex.RUnlock()
@@ -163,7 +164,7 @@ func (calendar *Calendar) SelectEventsForDay(ctx context.Context, date time.Time
 	return events, nil
 }
 
-// SelectEventsForWeek - получение событий на указанную неделю.
+// SelectEventsForWeek получение событий на указанную неделю.
 func (calendar *Calendar) SelectEventsForWeek(ctx context.Context, startDate time.Time) ([]model.IEvent, error) {
 	calendar.mutex.RLock()
 	defer calendar.mutex.RUnlock()
@@ -183,7 +184,7 @@ func (calendar *Calendar) SelectEventsForWeek(ctx context.Context, startDate tim
 	return events, nil
 }
 
-// SelectEventsForMonth - получение событий на указанный месяц.
+// SelectEventsForMonth получение событий на указанный месяц.
 func (calendar *Calendar) SelectEventsForMonth(ctx context.Context, startDate time.Time) ([]model.IEvent, error) {
 	calendar.mutex.RLock()
 	defer calendar.mutex.RUnlock()
@@ -191,6 +192,26 @@ func (calendar *Calendar) SelectEventsForMonth(ctx context.Context, startDate ti
 	events := make([]model.IEvent, 0)
 
 	storageEvents, err := calendar.storage.SelectEventsForMonth(ctx, startDate)
+	if err != nil {
+		return events, err
+	}
+
+	for _, storageEvent := range storageEvents {
+		event := storageEvent
+		events = append(events, &event)
+	}
+
+	return events, nil
+}
+
+// SelectEventsByTime возвращает список событий, которые должны быть уведомлены в указанное время.
+func (calendar *Calendar) SelectEventsByTime(ctx context.Context, t time.Time) ([]model.IEvent, error) {
+	calendar.mutex.RLock()
+	defer calendar.mutex.RUnlock()
+
+	events := make([]model.IEvent, 0)
+
+	storageEvents, err := calendar.storage.SelectEventsByTime(ctx, t)
 	if err != nil {
 		return events, err
 	}

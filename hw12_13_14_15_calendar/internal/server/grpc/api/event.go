@@ -20,6 +20,7 @@ func NewEventServer(logger server.Logger, app server.Application) *EventServer {
 	return &EventServer{logger: logger, app: app}
 }
 
+// SelectEvents возвращает все события.
 func (s *EventServer) SelectEvents(ctx context.Context, _ *Void) (*Events, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
@@ -48,6 +49,7 @@ func (s *EventServer) SelectEvents(ctx context.Context, _ *Void) (*Events, error
 	return &result, nil
 }
 
+// CreateEvent создает новое событие.
 func (s *EventServer) CreateEvent(ctx context.Context, event *Event) (*Void, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
@@ -58,6 +60,7 @@ func (s *EventServer) CreateEvent(ctx context.Context, event *Event) (*Void, err
 	return &Void{}, err
 }
 
+// UpdateEvent обновляет существующее событие.
 func (s *EventServer) UpdateEvent(ctx context.Context, event *Event) (*Void, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
@@ -70,6 +73,7 @@ func (s *EventServer) UpdateEvent(ctx context.Context, event *Event) (*Void, err
 	return &Void{}, nil
 }
 
+// DeleteEvent удаляет событие по его идентификатору.
 func (s *EventServer) DeleteEvent(ctx context.Context, event *Event) (*Void, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
@@ -82,6 +86,7 @@ func (s *EventServer) DeleteEvent(ctx context.Context, event *Event) (*Void, err
 	return &Void{}, nil
 }
 
+// SelectEventsForDay возвращает события за указанный день.
 func (s *EventServer) SelectEventsForDay(ctx context.Context, req *DateRequest) (*Events, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
@@ -110,6 +115,7 @@ func (s *EventServer) SelectEventsForDay(ctx context.Context, req *DateRequest) 
 	return &result, nil
 }
 
+// SelectEventsForWeek возвращает события за указанную неделю.
 func (s *EventServer) SelectEventsForWeek(ctx context.Context, req *DateRequest) (*Events, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
@@ -138,6 +144,7 @@ func (s *EventServer) SelectEventsForWeek(ctx context.Context, req *DateRequest)
 	return &result, nil
 }
 
+// SelectEventsForMonth возвращает события за указанный месяц.
 func (s *EventServer) SelectEventsForMonth(ctx context.Context, req *DateRequest) (*Events, error) {
 	defer func(start time.Time) {
 		duration := time.Since(start)
@@ -166,16 +173,20 @@ func (s *EventServer) SelectEventsForMonth(ctx context.Context, req *DateRequest
 	return &result, nil
 }
 
+// mustEmbedUnimplementedEventServiceServer требуется для реализации интерфейса gRPC.
 func (s *EventServer) mustEmbedUnimplementedEventServiceServer() {}
 
+// GetBeginning возвращает время начала события.
 func (x *Event) GetBeginning() time.Time {
 	return x.BeginningT.AsTime()
 }
 
+// GetFinish возвращает время окончания события.
 func (x *Event) GetFinish() time.Time {
 	return x.FinishT.AsTime()
 }
 
+// GetNotification возвращает время уведомления события.
 func (x *Event) GetNotification() time.Time {
 	return x.NotificationT.AsTime()
 }

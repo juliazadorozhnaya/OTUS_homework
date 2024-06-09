@@ -23,7 +23,7 @@ func New(connString string) (*Storage, error) {
 	}, nil
 }
 
-// SelectUsers - возвращает всех пользователей из базы данных.
+// SelectUsers возвращает всех пользователей из базы данных.
 func (s *Storage) SelectUsers(ctx context.Context) (users []model.User, err error) {
 	users = make([]model.User, 0)
 	sql := `SELECT id, firstname, lastname, email, age FROM calendar.users;`
@@ -58,7 +58,7 @@ func (s *Storage) SelectUsers(ctx context.Context) (users []model.User, err erro
 	return users, rows.Err()
 }
 
-// CreateUser - вставляет нового пользователя в базу данных.
+// CreateUser вставляет нового пользователя в базу данных.
 func (s *Storage) CreateUser(ctx context.Context, user model.User) error {
 	sql := `INSERT INTO calendar.users (firstname, lastname, email, age) VALUES ($1, $2, $3, $4);`
 
@@ -78,7 +78,7 @@ func (s *Storage) CreateUser(ctx context.Context, user model.User) error {
 	return err
 }
 
-// DeleteUser - удаляет пользователя по его идентификатору.
+// DeleteUser удаляет пользователя по его идентификатору.
 func (s *Storage) DeleteUser(ctx context.Context, userID string) error {
 	sql := `DELETE FROM calendar.users WHERE id = $1;`
 
@@ -98,7 +98,7 @@ func (s *Storage) DeleteUser(ctx context.Context, userID string) error {
 	return err
 }
 
-// CreateEvent - вставляет новое событие в базу данных.
+// CreateEvent вставляет новое событие в базу данных.
 func (s *Storage) CreateEvent(ctx context.Context, event model.Event) error {
 	sql := `INSERT INTO calendar.events (title, description, beginning, finish, notification, userid) 
 			VALUES ($1, $2, $3, $4, $5, $6);`
@@ -120,7 +120,7 @@ func (s *Storage) CreateEvent(ctx context.Context, event model.Event) error {
 	return err
 }
 
-// DeleteEvent - удаляет событие по его идентификатору.
+// DeleteEvent удаляет событие по его идентификатору.
 func (s *Storage) DeleteEvent(ctx context.Context, eventID string) error {
 	sql := `DELETE FROM calendar.events WHERE id = $1;`
 
@@ -140,7 +140,7 @@ func (s *Storage) DeleteEvent(ctx context.Context, eventID string) error {
 	return err
 }
 
-// UpdateEvent - обновляет существующее событие в базе данных.
+// UpdateEvent обновляет существующее событие в базе данных.
 func (s *Storage) UpdateEvent(ctx context.Context, event model.Event) error {
 	sql := `UPDATE calendar.events
 			SET title = $2, description = $3, beginning = $4, finish = $5, notification = $6, userid = $7
@@ -163,7 +163,7 @@ func (s *Storage) UpdateEvent(ctx context.Context, event model.Event) error {
 	return err
 }
 
-// SelectEvents - возвращает все события из базы данных.
+// SelectEvents возвращает все события из базы данных.
 func (s *Storage) SelectEvents(ctx context.Context) (events []model.Event, err error) {
 	events = make([]model.Event, 0)
 	sql := `SELECT id, title, description, beginning, finish, notification, userid FROM calendar.events;`
@@ -199,6 +199,7 @@ func (s *Storage) SelectEvents(ctx context.Context) (events []model.Event, err e
 	return events, rows.Err()
 }
 
+// selectEvents возвращает события из базы данных, которые начинаются в указанный период.
 func (s *Storage) selectEvents(ctx context.Context, startDate, endDate time.Time) (events []model.Event, err error) {
 	events = make([]model.Event, 0)
 	sql := `SELECT id, title, description, beginning, finish, notification, userid 
@@ -236,18 +237,59 @@ func (s *Storage) selectEvents(ctx context.Context, startDate, endDate time.Time
 	return events, rows.Err()
 }
 
+// SelectEventsForDay возвращает события за указанный день.
 func (s *Storage) SelectEventsForDay(ctx context.Context, date time.Time) (events []model.Event, err error) {
 	startDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	endDate := startDate.AddDate(0, 0, 1)
 	return s.selectEvents(ctx, startDate, endDate)
 }
 
+// SelectEventsForWeek возвращает события за указанную неделю.
 func (s *Storage) SelectEventsForWeek(ctx context.Context, startDate time.Time) (events []model.Event, err error) {
 	endDate := startDate.AddDate(0, 0, 7)
 	return s.selectEvents(ctx, startDate, endDate)
 }
 
+// SelectEventsForMonth возвращает события за указанный месяц.
 func (s *Storage) SelectEventsForMonth(ctx context.Context, startDate time.Time) (events []model.Event, err error) {
 	endDate := startDate.AddDate(0, 1, 0)
 	return s.selectEvents(ctx, startDate, endDate)
+}
+
+// SelectEventsByTime возвращает события, которые нужно уведомить в указанное время.
+func (s *Storage) SelectEventsByTime(ctx context.Context, t time.Time) (events []model.Event, err error) {
+	events = make([]model.Event, 0)
+	sql := `SELECT id, title, description, beginning, finish, notification, userid 
+			FROM calendar.events 
+			WHERE notification = $1;`
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return events, err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+		} else {
+			tx.Commit(ctx)
+		}
+	}()
+
+	rows, err := tx.Query(ctx, sql, t)
+	if err != nil {
+		return events, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var event model.Event
+		err = rows.Scan(&event.ID, &event.Title, &event.Description, &event.Beginning,
+			&event.Finish, &event.Notification, &event.UserID)
+		if err != nil {
+			return events, err
+		}
+		events = append(events, event)
+	}
+
+	return events, rows.Err()
 }

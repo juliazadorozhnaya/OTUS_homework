@@ -28,7 +28,7 @@ func New() *Storage {
 	}
 }
 
-// CreateUser - создает нового пользователя и добавляет его в map пользователей.
+// CreateUser создает нового пользователя и добавляет его в map пользователей.
 func (s *Storage) CreateUser(_ context.Context, user model.User) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -39,7 +39,7 @@ func (s *Storage) CreateUser(_ context.Context, user model.User) error {
 	return nil
 }
 
-// DeleteUser - удаляет пользователя по его идентификатору.
+// DeleteUser удаляет пользователя по его идентификатору.
 func (s *Storage) DeleteUser(_ context.Context, userID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -52,7 +52,7 @@ func (s *Storage) DeleteUser(_ context.Context, userID string) error {
 	return nil
 }
 
-// CreateEvent - cоздает новое событие и добавляет его в map событий.
+// CreateEvent cоздает новое событие и добавляет его в map событий.
 func (s *Storage) CreateEvent(_ context.Context, event model.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -63,7 +63,7 @@ func (s *Storage) CreateEvent(_ context.Context, event model.Event) error {
 	return nil
 }
 
-// DeleteEvent - удаляет событие по его идентификатору.
+// DeleteEvent удаляет событие по его идентификатору.
 func (s *Storage) DeleteEvent(_ context.Context, eventID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -76,7 +76,7 @@ func (s *Storage) DeleteEvent(_ context.Context, eventID string) error {
 	return nil
 }
 
-// UpdateEvent - обновляет существующее событие в map событий.
+// UpdateEvent обновляет существующее событие в map событий.
 func (s *Storage) UpdateEvent(_ context.Context, event model.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -89,7 +89,7 @@ func (s *Storage) UpdateEvent(_ context.Context, event model.Event) error {
 	return nil
 }
 
-// SelectEvents - возвращает все события.
+// SelectEvents возвращает все события.
 func (s *Storage) SelectEvents(_ context.Context) ([]model.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -102,7 +102,7 @@ func (s *Storage) SelectEvents(_ context.Context) ([]model.Event, error) {
 	return events, nil
 }
 
-// SelectUsers - возвращает всех пользователей.
+// SelectUsers возвращает всех пользователей.
 func (s *Storage) SelectUsers(_ context.Context) ([]model.User, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -115,7 +115,7 @@ func (s *Storage) SelectUsers(_ context.Context) ([]model.User, error) {
 	return users, nil
 }
 
-// SelectEventsForDay - возвращает события на указанный день.
+// SelectEventsForDay возвращает события на указанный день.
 func (s *Storage) SelectEventsForDay(_ context.Context, date time.Time) ([]model.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -130,7 +130,7 @@ func (s *Storage) SelectEventsForDay(_ context.Context, date time.Time) ([]model
 	return events, nil
 }
 
-// SelectEventsForWeek - возвращает события на неделю, начиная с указанной даты.
+// SelectEventsForWeek возвращает события на неделю, начиная с указанной даты.
 func (s *Storage) SelectEventsForWeek(_ context.Context, startDate time.Time) ([]model.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -146,7 +146,7 @@ func (s *Storage) SelectEventsForWeek(_ context.Context, startDate time.Time) ([
 	return events, nil
 }
 
-// SelectEventsForMonth - возвращает события на месяц, начиная с указанной даты.
+// SelectEventsForMonth возвращает события на месяц, начиная с указанной даты.
 func (s *Storage) SelectEventsForMonth(_ context.Context, startDate time.Time) ([]model.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -155,6 +155,19 @@ func (s *Storage) SelectEventsForMonth(_ context.Context, startDate time.Time) (
 	endDate := startDate.AddDate(0, 1, 0)
 	for _, event := range s.events {
 		if event.Beginning.After(startDate) && event.Beginning.Before(endDate) {
+			events = append(events, event)
+		}
+	}
+
+	return events, nil
+}
+
+// SelectEventsByTime возвращает список событий, которые должны быть уведомлены в указанное время.
+func (s *Storage) SelectEventsByTime(_ context.Context, t time.Time) ([]model.Event, error) {
+	events := make([]model.Event, 0)
+
+	for _, event := range s.events {
+		if event.Notification.Equal(t) {
 			events = append(events, event)
 		}
 	}
