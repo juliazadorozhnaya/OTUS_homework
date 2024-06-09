@@ -9,7 +9,7 @@ import (
 )
 
 type Storage struct {
-	pool *pgxpool.Pool
+	Pool *pgxpool.Pool
 }
 
 func New(connString string) (*Storage, error) {
@@ -19,7 +19,7 @@ func New(connString string) (*Storage, error) {
 	}
 
 	return &Storage{
-		pool: pool,
+		Pool: pool,
 	}, nil
 }
 
@@ -28,7 +28,7 @@ func (s *Storage) SelectUsers(ctx context.Context) (users []model.User, err erro
 	users = make([]model.User, 0)
 	sql := `SELECT id, firstname, lastname, email, age FROM calendar.users;`
 
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return users, err
 	}
@@ -62,7 +62,7 @@ func (s *Storage) SelectUsers(ctx context.Context) (users []model.User, err erro
 func (s *Storage) CreateUser(ctx context.Context, user model.User) error {
 	sql := `INSERT INTO calendar.users (firstname, lastname, email, age) VALUES ($1, $2, $3, $4);`
 
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (s *Storage) CreateUser(ctx context.Context, user model.User) error {
 func (s *Storage) DeleteUser(ctx context.Context, userID string) error {
 	sql := `DELETE FROM calendar.users WHERE id = $1;`
 
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (s *Storage) CreateEvent(ctx context.Context, event model.Event) error {
 	sql := `INSERT INTO calendar.events (title, description, beginning, finish, notification, userid) 
 			VALUES ($1, $2, $3, $4, $5, $6);`
 
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (s *Storage) CreateEvent(ctx context.Context, event model.Event) error {
 func (s *Storage) DeleteEvent(ctx context.Context, eventID string) error {
 	sql := `DELETE FROM calendar.events WHERE id = $1;`
 
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (s *Storage) UpdateEvent(ctx context.Context, event model.Event) error {
 			SET title = $2, description = $3, beginning = $4, finish = $5, notification = $6, userid = $7
 			WHERE id = $1;`
 
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func (s *Storage) SelectEvents(ctx context.Context) (events []model.Event, err e
 	events = make([]model.Event, 0)
 	sql := `SELECT id, title, description, beginning, finish, notification, userid FROM calendar.events;`
 
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return events, err
 	}
@@ -206,7 +206,7 @@ func (s *Storage) selectEvents(ctx context.Context, startDate, endDate time.Time
 			FROM calendar.events 
 			WHERE beginning BETWEEN $1 AND $2;`
 
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return events, err
 	}
@@ -263,7 +263,7 @@ func (s *Storage) SelectEventsByTime(ctx context.Context, t time.Time) (events [
 			FROM calendar.events 
 			WHERE notification = $1;`
 
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return events, err
 	}

@@ -41,7 +41,7 @@ func (s *Scheduler) Start(ctx context.Context) error {
 		select {
 		case <-ticker.C:
 			s.logger.Info("Scheduler tick")
-			s.handleNotifications(ctx)
+			s.HandleNotifications(ctx)
 			s.cleanupOldEvents(ctx)
 
 		case <-ctx.Done():
@@ -55,31 +55,38 @@ func (s *Scheduler) Start(ctx context.Context) error {
 	}
 }
 
-// handleNotifications обрабатывает уведомления, выбирая события из базы данных
+// HandleNotifications обрабатывает уведомления, выбирая события из базы данных
 // и отправляя их через RabbitMQ.
-func (s *Scheduler) handleNotifications(ctx context.Context) {
-	events, err := s.app.SelectEventsByTime(ctx, time.Now())
+func (s *Scheduler) HandleNotifications(ctx context.Context) {
+	now := time.Now().Truncate(time.Second)
+	formattedTime := now.Format("2006-01-02 15:04:05")
+	t, err := time.Parse("2006-01-02 15:04:05", formattedTime)
+	if err != nil {
+		s.logger.Error("Error formatting time: %v", err)
+		return
+	}
+
+	events, err := s.app.SelectEventsByTime(ctx, t)
 	if err != nil {
 		s.logger.Error("Error getting upcoming events: %v", err)
 		return
 	}
 
 	for _, event := range events {
-		if event.GetNotification().Before(time.Now()) {
-			notify := model.Event{
-				ID:           event.GetID(),
-				Title:        event.GetTitle(),
-				Description:  event.GetDescription(),
-				Notification: event.GetNotification(),
-			}
-			body, err := json.Marshal(notify)
-			if err != nil {
-				s.logger.Error("Error marshalling notification: %v", err)
-				continue
-			}
-			if err := s.broker.PublishWithContext(ctx, *config.Get().RabbitMQ.Publish, body); err != nil {
-				s.logger.Error("Error publishing message: %v", err)
-			}
+		notify := model.Event{
+			ID:           event.GetID(),
+			Title:        event.GetTitle(),
+			Description:  event.GetDescription(),
+			Notification: event.GetNotification(),
+		}
+		body, err := json.Marshal(notify)
+		if err != nil {
+			s.logger.Error("Error marshalling notification: %v", err)
+			continue
+		}
+
+		if err := s.broker.PublishWithContext(ctx, *config.Get().RabbitMQ.Publish, body); err != nil {
+			s.logger.Error("Error publishing message: %v", err)
 		}
 	}
 }

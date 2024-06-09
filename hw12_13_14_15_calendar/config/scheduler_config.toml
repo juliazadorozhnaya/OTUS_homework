@@ -8,20 +8,27 @@ host = "localhost"
 port = "5672"
 
 [consume]
-queue = "notification"
-consumer = "q"
-autoAck = true
-exclusive = false
-noLocal = false
-noWait = false
-interval = "1m"
+Queue     = "test_queue"
+Consumer  = "test-consumer"
+AutoAck   = true
+Exclusive = false
+NoLocal   = false
+NoWait    = false
+Interval  = "1s"
+
+[publish]
+Exchange    = "test_exchange"
+Key         = "test_key"
+ContentType = "application/json"
+Mandatory   = false
+Immediate   = false
 
 [queue]
-name = "notification"
-durable = true
-autoDelete = false
-exclusive = false
-noWait = false
+Name       = "test_queue"
+Durable    = false
+AutoDelete = false
+Exclusive  = false
+NoWait     = false
 
 [database]
 Prefix       = "postgresql"

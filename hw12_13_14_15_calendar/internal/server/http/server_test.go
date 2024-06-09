@@ -101,7 +101,7 @@ func TestServer(t *testing.T) {
 
 	log := logger.New(&logConfig)
 	memoryStorage := memorystorage.New()
-	application := app.New(memoryStorage)
+	application := app.New(memoryStorage, *log)
 
 	host := "localhost"
 	port := "8080"

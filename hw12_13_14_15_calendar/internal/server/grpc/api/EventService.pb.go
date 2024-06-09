@@ -470,6 +470,7 @@ var (
 		(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
 	}
 )
+
 var file_internal_server_grpc_EventService_proto_depIdxs = []int32{
 	6,  // 0: Event.BeginningT:type_name -> google.protobuf.Timestamp
 	6,  // 1: Event.FinishT:type_name -> google.protobuf.Timestamp
