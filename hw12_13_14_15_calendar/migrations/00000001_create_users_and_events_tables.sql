@@ -17,9 +17,9 @@ CREATE TABLE IF NOT EXISTS calendar.events (
     ID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     Title TEXT,
     Description TEXT,
-    Beginning TIMESTAMP,
-    Finish TIMESTAMP,
-    Notification TIMESTAMP,
+    Beginning TIMESTAMP(0),
+    Finish TIMESTAMP(0),
+    Notification TIMESTAMP(0),
     UserID UUID,
 
     FOREIGN KEY (UserID) REFERENCES calendar.users (ID) ON DELETE CASCADE

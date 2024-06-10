@@ -64,7 +64,7 @@ func TestGRPCServer(t *testing.T) {
 
 	log := logger.New(&logConfig)
 	memoryStorage := memorystorage.New()
-	application := app.New(memoryStorage)
+	application := app.New(memoryStorage, *log)
 
 	grpcServer := startTestGRPCServer(t, log, application)
 

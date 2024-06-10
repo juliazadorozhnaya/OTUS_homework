@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/broker"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/config"
@@ -27,9 +28,14 @@ func NewSender(broker broker.Broker, logger *logger.Logger) *Sender {
 // Start запускает процесс рассыльщика, который читает сообщения из очереди RabbitMQ.
 func (s *Sender) Start(ctx context.Context) error {
 	s.logger.Info("Sender started")
+
+	if s.broker == nil {
+		return fmt.Errorf("broker is not initialized")
+	}
+
 	msgs, err := s.broker.Consume(*config.Get().RabbitMQ.Consume)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to start consuming messages: %w", err)
 	}
 
 	for {

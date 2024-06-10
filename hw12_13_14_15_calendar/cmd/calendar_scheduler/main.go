@@ -92,7 +92,7 @@ func main() {
 	}
 
 	l.Info("Creating new calendar app...")
-	calendarApp := app.New(storage)
+	calendarApp := app.New(storage, *l)
 	scheduler := app.NewScheduler(calendarApp, &rabbit, l, conf.RabbitMQ.Consume.Interval)
 
 	ctx, cancel := context.WithCancel(context.Background())

@@ -10,16 +10,20 @@ CONFIG_CALENDAR := "./config/calendar_config.toml"
 CONFIG_SCHEDULER := "./config/scheduler_config.toml"
 CONFIG_SENDER := "./config/sender_config.toml"
 
+DOCKER_IMG_CALENDAR := "calendar-app"
+DOCKER_IMG_SCHEDULER := "scheduler-app"
+DOCKER_IMG_SENDER := "sender-app"
 
 LINT_EXCLUDE_DIRS="hw12_13_14_15_calendar/internal/server"
-
-DOCKER_IMG="develop"
 
 GIT_HASH := $(shell git log --format="%h" -n 1)
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
 
 test:
 	go test -race ./internal/...
+
+integration-tests:
+	go test ./integration_tests
 
 install-lint-deps:
 	export GOROOT=$(go env GOROOT)
@@ -54,30 +58,42 @@ run-scheduler: build-scheduler
 run-sender: build-sender
 	$(BIN_SENDER) -config $(CONFIG_SENDER)
 
-version: build
-	$(BIN) version
+version: build-calendar
+	$(BIN_CALENDAR) version
 
-build-img:
-	docker build \
-		--build-arg=LDFLAGS="$(LDFLAGS)" \
-		-t $(DOCKER_IMG) \
-		-f build/Dockerfile .
+build-img-calendar:
+	docker build --build-arg LDFLAGS="$(LDFLAGS)" -t $(DOCKER_IMG_CALENDAR) -f build/calendar/Dockerfile .
+
+build-img-scheduler:
+	docker build --build-arg LDFLAGS="$(LDFLAGS)" -t $(DOCKER_IMG_SCHEDULER) -f build/calendar_scheduler/Dockerfile .
+
+build-img-sender:
+	docker build --build-arg LDFLAGS="$(LDFLAGS)" -t $(DOCKER_IMG_SENDER) -f build/calendar_sender/Dockerfile .
 
 postgres:
 	docker run --name postgresdb --env POSTGRES_PASSWORD="1234512345" --publish "5436:5432" --detach --rm postgres
+
+rabbitmq:
+	docker run --name rabbitmq --detach --rm -p 15672:15672 -p 5672:5672 rabbitmq:3-management
 
 migrate-up:
 	docker exec -it postgresdb createdb --username postgres calendardb
 	migrate -path migrations -database "postgres://postgres:1234512345@localhost:5432/calendardb?sslmode=disable" -verbose up
 
+migrate-down:
+	migrate -path migrations -database "postgres://postgres:1234512345@localhost:5436/calendardb?sslmode=disable" -verbose down
+
 run-img: build-img
 	docker run $(DOCKER_IMG)
 
 up:
-	cd deployments && docker-compose -f docker-compose.yaml build && docker-compose -f docker-compose.yaml up
+	cd deployments && docker-compose up --build -d
 
 down:
 	cd deployments && docker-compose down
+
+integration-tests:
+	cd deployments && docker-compose -f docker-compose-test.yaml build && docker-compose -f docker-compose.test.yaml up
 
 .PHONY: up down \
 		generate rabbitmq postgre \

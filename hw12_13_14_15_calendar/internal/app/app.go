@@ -5,11 +5,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/logger"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/model"
 )
 
 type Calendar struct {
 	storage Storage
+	logger  logger.Logger
 	mutex   sync.RWMutex
 }
 
@@ -29,9 +31,10 @@ type Storage interface {
 	SelectEventsForMonth(ctx context.Context, startDate time.Time) ([]model.Event, error)
 }
 
-func New(storage Storage) *Calendar {
+func New(storage Storage, l logger.Logger) *Calendar {
 	return &Calendar{
 		storage: storage,
+		logger:  l,
 		mutex:   sync.RWMutex{},
 	}
 }
@@ -213,6 +216,7 @@ func (calendar *Calendar) SelectEventsByTime(ctx context.Context, t time.Time) (
 
 	storageEvents, err := calendar.storage.SelectEventsByTime(ctx, t)
 	if err != nil {
+		calendar.logger.Error("Error selecting events by time: %v", err)
 		return events, err
 	}
 
@@ -221,5 +225,6 @@ func (calendar *Calendar) SelectEventsByTime(ctx context.Context, t time.Time) (
 		events = append(events, &event)
 	}
 
+	calendar.logger.Info("Events selected by time: %d", len(events))
 	return events, nil
 }

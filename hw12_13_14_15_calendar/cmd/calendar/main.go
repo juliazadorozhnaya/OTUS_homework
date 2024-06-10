@@ -78,7 +78,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	calendarApp := app.New(storage)
+	calendarApp := app.New(storage, *log)
 	httpServer := serverhttp.NewServer(log, calendarApp, conf.HTTPServer)
 	grpcServer := servergrpc.NewServer(log, calendarApp, conf.GRPCServer)
 
@@ -130,7 +130,7 @@ func runMigrations(connString string) error {
 	}
 	defer db.Close()
 
-	if err := goose.Up(db, "migrations", goose.WithAllowMissing()); err != nil {
+	if err := goose.Up(db, "migrations", goose.WithAllowMissing(), goose.WithNoVersioning()); err != nil {
 		return err
 	}
 	return nil

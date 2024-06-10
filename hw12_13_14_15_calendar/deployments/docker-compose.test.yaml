@@ -52,6 +52,16 @@ services:
     networks:
       - default
 
+  test:
+    container_name: test
+    build:
+      context: ..
+      dockerfile: ./build/test/Dockerfile
+    networks:
+      - default
+    restart: on-failure
+
 networks:
   default:
     driver: bridge
+

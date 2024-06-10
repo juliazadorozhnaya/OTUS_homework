@@ -8,10 +8,10 @@ host = "localhost"
 port = "5672"
 
 [consume]
-queue = "notification"
-consumer = "q"
-autoAck = true
-exclusive = false
-noLocal = false
-noWait = false
-interval = "1m"
+Queue     = "test_queue"
+Consumer  = "test-consumer"
+AutoAck   = true
+Exclusive = false
+NoLocal   = false
+NoWait    = false
+Interval  = "1s"

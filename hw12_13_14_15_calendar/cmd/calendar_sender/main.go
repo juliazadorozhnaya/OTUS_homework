@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path"
 
+	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/app"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/broker/rabbitmq"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/config"
 	"github.com/juliazadorozhnaya/otus_homework/hw12_13_14_15_calendar/internal/logger"
@@ -50,14 +51,11 @@ func main() {
 	}()
 
 	l.Info("Starting to consume messages from RabbitMQ...")
-	messages, err := rabbit.Consume(*conf.RabbitMQ.Consume)
-	if err != nil {
-		l.Fatal("Error consuming from queue: %v", err)
-		return
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	sender := app.NewSender(&rabbit, l)
 
 	go func() {
 		c := make(chan os.Signal, 1)
@@ -65,16 +63,18 @@ func main() {
 		<-c
 		l.Info("Received interrupt signal, shutting down...")
 		cancel()
+		sender.Stop()
+	}()
+
+	l.Info("Starting sender...")
+	go func() {
+		if err := sender.Start(ctx); err != nil {
+			l.Fatal("Error starting sender: %v", err)
+		}
 	}()
 
 	l.Info("Waiting for messages...")
-	for {
-		select {
-		case msg := <-messages:
-			l.Info("Received a message: %s", msg.Body)
-		case <-ctx.Done():
-			l.Info("Context done, stopping...")
-			return
-		}
-	}
+
+	<-ctx.Done()
+	l.Info("Context cancelled, exiting main function...")
 }
