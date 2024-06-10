@@ -1,7 +1,7 @@
 FROM golang:1.22.1-alpine as build
 
 ENV BIN_FILE /opt/calendar/calendar-app
-ENV CODE_DIR /go/src/
+ENV CODE_DIR /go/src/app
 
 WORKDIR ${CODE_DIR}
 
@@ -11,8 +11,10 @@ RUN go mod download
 
 COPY ../../ ${CODE_DIR}
 
-ARG LDFLAGS
-RUN CGO_ENABLED=0 go build -ldflags "$LDFLAGS" -o ${BIN_FILE} ./cmd/calendar
+ARG VERSION
+ARG BUILD_TIME
+
+RUN CGO_ENABLED=0 go build -ldflags "-X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME}" -o ${BIN_FILE} ./cmd/calendar
 
 FROM alpine:3.9
 
