@@ -95,9 +95,17 @@ down:
 integration-tests:
 	cd deployments && docker-compose -f docker-compose-test.yaml build && docker-compose -f docker-compose.test.yaml up
 
+KUBE_DEPLOY_DIR := /Users/yu.zadorozhnaya/edu/otus_homework/hw12_13_14_15_calendar/deployments
+
+deploy-k8s:
+	kubectl apply -f $(KUBE_DEPLOY_DIR)/calendar-deployment.yaml
+	kubectl apply -f $(KUBE_DEPLOY_DIR)/calendar-service.yaml
+	kubectl apply -f $(KUBE_DEPLOY_DIR)/calendar-ingress.yaml
+
 .PHONY: up down \
-		generate rabbitmq postgre \
+		generate rabbitmq postgres \
 		install-lint-deps lint test \
 		build build-calendar build-scheduler build-sender \
- 		run-calendar run-scheduler run-sender \
- 		build-img run-img version migrateup
+		run-calendar run-scheduler run-sender \
+		build-img run-img version migrate-up migrate-down \
+		deploy-k8s
