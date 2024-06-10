@@ -227,14 +227,14 @@ func (h *handler) selectEventsForWeek(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("Events for week selected")
 }
 
-// handleRoute обрабатывает запросы к /route
-func (h *handler) handleRoute(w http.ResponseWriter, r *http.Request) {
+// handleRoute обрабатывает запросы к /route.
+func (h *handler) handleRoute(w http.ResponseWriter, _ *http.Request) {
 	response := map[string]string{"message": "Route handler reached"}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
-// handleHealth обрабатывает запросы к /health для проверки состояния сервиса
+// handleHealth обрабатывает запросы к /health для проверки состояния сервиса.
 func (h *handler) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method == http.MethodGet {
