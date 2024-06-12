@@ -36,6 +36,9 @@ func NewServer(logger server.Logger, app server.Application, config server.Confi
 	mux.HandleFunc("/select/events/week", handler.selectEventsForWeek)
 	mux.HandleFunc("/select/events/month", handler.selectEventsForMonth)
 
+	mux.HandleFunc("/route", handler.handleRoute)
+	mux.HandleFunc("/health", handler.handleHealth)
+
 	middleWare := newMiddleware(logger, mux).logging()
 
 	return &Server{

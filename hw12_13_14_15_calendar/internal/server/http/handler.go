@@ -227,6 +227,25 @@ func (h *handler) selectEventsForWeek(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("Events for week selected")
 }
 
+// handleRoute обрабатывает запросы к /route.
+func (h *handler) handleRoute(w http.ResponseWriter, _ *http.Request) {
+	response := map[string]string{"message": "Route handler reached"}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleHealth обрабатывает запросы к /health для проверки состояния сервиса.
+func (h *handler) handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method == http.MethodGet {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "OK"})
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Method not allowed"})
+	}
+}
+
 // selectEventsForMonth обрабатывает запрос на получение списка событий на указанный месяц.
 func (h *handler) selectEventsForMonth(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
